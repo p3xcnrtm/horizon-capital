@@ -419,293 +419,302 @@
   </div>
 
   
-  <script>
-// Check authentication immediately - redirect to login if not authenticated
-const currentUser = localStorage.getItem('currentUser');
-if (!currentUser) {
-  window.location.href = 'login.html';
-} else {
-  // Get user data from localStorage
-  let userData = JSON.parse(currentUser);
-  if (!userData.profits) userData.profits = 0;
-  if (!userData.btc) userData.btc = 0;
-  if (!userData.eth) userData.eth = 0;
-  if (!userData.dodge) userData.dodge = 0;
-  if (!userData.usdt) userData.usdt = 0;
-  if (!userData.xlm) userData.xlm = 0;
+ <script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-  // Update profits daily (0.5% daily increase)
-  const lastUpdate = userData.lastUpdated ? new Date(userData.lastUpdated) : null;
-  const now = new Date();
-  if (!lastUpdate || (now - lastUpdate) >= 86400000) { // 24 hours in milliseconds
-    userData.profits = parseFloat(userData.profits || 0) * 1.005;
-    userData.lastUpdated = now.toISOString();
-    localStorage.setItem('currentUser', JSON.stringify(userData));
-  }
+  // --- Supabase client ---
+  const SUPABASE_URL = 'https://mxbzzkwryfifpzaotrhl.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14Ynp6a3dyeWZpZnB6YW90cmhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NjQ4MzEsImV4cCI6MjA3ODU0MDgzMX0.ot10C7-pxlkoizmk5bhc2Oe_zyJ4PoGWdTrS7P8Xm9I';
+  const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // Update welcome text
-  const welcomeText = document.getElementById('welcomeText');
-  if (userData.name) {
-    welcomeText.textContent = `Welcome back, ${userData.name.split(' ')[0]}`;
-  }
+  // --- Tiny loader gate while we decide auth ---
+  const gate = document.createElement('div');
+  gate.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.8);backdrop-filter:blur(3px);z-index:9999;font:600 16px/1.2 Inter,system-ui;color:#111;';
+  gate.textContent = 'Loading your dashboard…';
+  document.body.appendChild(gate);
 
-  // Update balance display
-  const balance = parseFloat(userData.profits || 0);
-  document.getElementById('balance').textContent = '$' + balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+  // --- Feather icons init (safe to call multiple times) ---
+  document.addEventListener('DOMContentLoaded', () => { if (window.feather) feather.replace(); });
 
+  // --- Globals used by render functions ---
+  let profile = null;          // Supabase profile row
+  let portfolioChart = null;   // Chart.js instance
   const LCW_API_KEY = "4d740457-16d7-483f-8c63-0e3705c4bc7c";
 
-  let assets = [
-    { symbol: "BTC", name: "Bitcoin", type: "Crypto", quantity: parseFloat(userData.btc || 0), price: 0, change: 0 },
-    { symbol: "ETH", name: "Ethereum", type: "Crypto", quantity: parseFloat(userData.eth || 0), price: 0, change: 0 },
-    { symbol: "DOGE", name: "Dogecoin", type: "Crypto", quantity: parseFloat(userData.dodge || 0), price: 0, change: 0 },
-    { symbol: "USDT", name: "Tether", type: "Crypto", quantity: parseFloat(userData.usdt || 0), price: 0, change: 0 },
-    { symbol: "XLM", name: "Stellar", type: "Crypto", quantity: parseFloat(userData.xlm || 0), price: 0, change: 0 }
-  ];
-
-  async function fetchLivePrices() {
-    try {
-      const res = await fetch("https://api.livecoinwatch.com/coins/map", {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-api-key": LCW_API_KEY
-        },
-        body: JSON.stringify({
-          currency: "USD",
-          codes: assets.map(a => a.symbol),
-          sort: "rank",
-          order: "ascending",
-          offset: 0,
-          limit: assets.length,
-          meta: true
-        })
-      });
-
-      const data = await res.json();
-
-      data.forEach(coin => {
-        const asset = assets.find(a => a.symbol === coin.code);
-        if (asset) {
-          asset.price = coin.rate || 0;
-          asset.change = (coin.delta && coin.delta.day)
-            ? coin.delta.day * 100
-            : 0;
-        }
-      });
-
-      renderDashboard();
-    } catch (e) {
-      console.error("Failed to fetch prices", e);
+  // --- Auth gate: wait for INITIAL_SESSION to avoid ping-pong ---
+  const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+      if (!session?.user) {
+        window.location.replace('login.html');
+        return;
+      }
+      // We are authenticated → load profile then render
+      profile = await loadProfile(session.user.id);
+      hydrateHeader(profile);
+      startDashboard(profile);
+      gate.remove();
+      // no longer need subscription
+      sub.subscription.unsubscribe();
     }
+  });
+
+  // Safety fallback in case INITIAL_SESSION never fires quickly
+  setTimeout(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) {
+      window.location.replace('login.html');
+    }
+  }, 2000);
+
+  // --- Load profile from Supabase ---
+  async function loadProfile(userId) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('full_name, username, profits, btc, eth, dodge, usdt, xlm, xrp, shiba, ltc, last_login, trn_date')
+      .eq('id', userId)
+      .single();
+    if (error) {
+      console.error('Failed to load profile:', error.message);
+      return {};
+    }
+    return data || {};
   }
 
-  function renderDashboard() {
-    const tbody = document.getElementById("assets-table");
-    tbody.innerHTML = "";
+  // --- UI helpers ---
+  function $(sel) { return document.querySelector(sel); }
+  function fmtUSD(n, min=2, max=2) { return '$' + Number(n||0).toLocaleString('en-US',{minimumFractionDigits:min, maximumFractionDigits:max}); }
 
-    // Filter assets with quantity > 0
-    const activeAssets = assets.filter(a => a.quantity > 0);
-    
-    if (activeAssets.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="6" class="empty-state">
-            <i data-feather="pie-chart"></i>
-            <p>No holdings yet. Start investing to see your portfolio here.</p>
-          </td>
-        </tr>
+  // --- Header hydrate ---
+  function hydrateHeader(p) {
+    const welcomeText = $('#welcomeText');
+    const first = (p?.full_name || '').split(' ')[0] || 'Investor';
+    if (welcomeText) welcomeText.textContent = `Welcome back, ${first}`;
+  }
+
+  // --- Build asset list from profile balances ---
+  function buildAssetsFromProfile(p) {
+    return [
+      { symbol:'BTC', name:'Bitcoin',  type:'Crypto', quantity: Number(p?.btc||0),   price:0, change:0 },
+      { symbol:'ETH', name:'Ethereum', type:'Crypto', quantity: Number(p?.eth||0),   price:0, change:0 },
+      { symbol:'DOGE',name:'Dogecoin', type:'Crypto', quantity: Number(p?.dodge||0), price:0, change:0 },
+      { symbol:'USDT',name:'Tether',   type:'Crypto', quantity: Number(p?.usdt||0),  price:0, change:0 },
+      { symbol:'XLM', name:'Stellar',  type:'Crypto', quantity: Number(p?.xlm||0),   price:0, change:0 },
+      { symbol:'XRP', name:'XRP',      type:'Crypto', quantity: Number(p?.xrp||0),   price:0, change:0 },
+      { symbol:'SHIB',name:'Shiba',    type:'Crypto', quantity: Number(p?.shiba||0), price:0, change:0 },
+      { symbol:'LTC', name:'Litecoin', type:'Crypto', quantity: Number(p?.ltc||0),   price:0, change:0 },
+    ];
+  }
+
+  // --- Kick off dashboard rendering ---
+  function startDashboard(p) {
+    // quick actions: logout handler
+    window.logout = async function () {
+      await supabase.auth.signOut();
+      window.location.replace('login.html');
+    };
+
+    // mobile menu toggle
+    window.toggleMobileMenu = function () {
+      const menu = document.querySelector('.navbar-menu');
+      menu.classList.toggle('active');
+    };
+
+    // initial feather refresh
+    if (window.feather) feather.replace();
+
+    // Recent activity (uses profile timestamps if available)
+    const activityList = $('#recentActivity');
+    if (activityList) {
+      activityList.innerHTML = `
+        <li class="activity-item">
+          <div class="activity-info">
+            <div class="activity-icon"><i data-feather="user-plus" style="width:20px;height:20px;"></i></div>
+            <div class="activity-details">
+              <h4>Account Created</h4>
+              <p>${p?.trn_date ? new Date(p.trn_date).toLocaleDateString() : 'Welcome to Horizon Capital'}</p>
+            </div>
+          </div>
+        </li>
+        ${p?.last_login ? `
+        <li class="activity-item">
+          <div class="activity-info">
+            <div class="activity-icon"><i data-feather="log-in" style="width:20px;height:20px;"></i></div>
+            <div class="activity-details">
+              <h4>Last Login</h4>
+              <p>${new Date(p.last_login).toLocaleDateString()} at ${new Date(p.last_login).toLocaleTimeString()}</p>
+            </div>
+          </div>
+        </li>` : '' }
       `;
-      feather.replace();
-      updatePortfolioStats(0, 0);
-      updatePortfolioChart([]);
-      return;
+      if (window.feather) feather.replace();
     }
 
-    let totalPortfolioValue = 0;
-    let totalInvested = 0;
+    // balances
+    const balanceEl = $('#balance');
+    const totalPortfolioEl = $('#totalPortfolio');
+    const totalInvestmentsEl = $('#totalInvestments');
+    const totalReturnEl = $('#totalReturn');
+    const assetCountEl = $('#assetCount');
 
-    activeAssets.forEach(asset => {
-      const totalValue = asset.quantity * asset.price;
-      totalPortfolioValue += totalValue;
-      totalInvested += totalValue; // Simplified - in real app, track original investment
-      const changeClass = asset.change >= 0 ? "positive" : "negative";
-      const changeIcon = asset.change >= 0 ? "arrow-up" : "arrow-down";
+    const assets = buildAssetsFromProfile(p);
 
-      const assetInitial = asset.symbol.charAt(0);
-      const row = `
-        <tr>
-          <td>
-            <div style="display: flex; align-items: center;">
-              <div class="asset-icon">${assetInitial}</div>
-              <div>
-                <div style="font-weight: 600; color: var(--text-dark);">${asset.name}</div>
-                <div style="font-size: 0.8rem; color: var(--text-gray);">${asset.symbol}</div>
+    async function fetchLivePrices() {
+      try {
+        const res = await fetch("https://api.livecoinwatch.com/coins/map", {
+          method: "POST",
+          headers: { "content-type": "application/json", "x-api-key": LCW_API_KEY },
+          body: JSON.stringify({
+            currency: "USD",
+            codes: assets.map(a => a.symbol),
+            sort: "rank",
+            order: "ascending",
+            offset: 0,
+            limit: assets.length,
+            meta: true
+          })
+        });
+        const data = await res.json();
+        data.forEach(coin => {
+          const asset = assets.find(a => a.symbol === coin.code);
+          if (asset) {
+            asset.price = coin.rate || 0;
+            asset.change = (coin.delta && coin.delta.day) ? coin.delta.day * 100 : 0;
+          }
+        });
+        renderDashboard();
+      } catch (e) {
+        console.error('Failed to fetch prices', e);
+        renderDashboard(); // render with zeros so UI still loads
+      }
+    }
+
+    function renderDashboard() {
+      // balance (profits) stored in profile.profits
+      const balance = Number(p?.profits || 0);
+      if (balanceEl) balanceEl.textContent = fmtUSD(balance);
+
+      const tbody = $('#assets-table');
+      if (!tbody) return;
+
+      tbody.innerHTML = '';
+      const activeAssets = assets.filter(a => (a.quantity || 0) > 0);
+
+      if (activeAssets.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="empty-state">
+              <i data-feather="pie-chart"></i>
+              <p>No holdings yet. Start investing to see your portfolio here.</p>
+            </td>
+          </tr>`;
+        if (window.feather) feather.replace();
+        updatePortfolioStats(0, balance);
+        updatePortfolioChart([]);
+        if (assetCountEl) assetCountEl.textContent = '0 assets';
+        return;
+      }
+
+      let totalPortfolioValue = 0;
+      activeAssets.forEach(asset => {
+        const totalValue = asset.quantity * asset.price;
+        totalPortfolioValue += totalValue;
+        const changeClass = asset.change >= 0 ? 'positive' : 'negative';
+        const changeIcon = asset.change >= 0 ? 'arrow-up' : 'arrow-down';
+
+        const row = `
+          <tr>
+            <td>
+              <div style="display:flex;align-items:center;">
+                <div class="asset-icon">${asset.symbol.charAt(0)}</div>
+                <div>
+                  <div style="font-weight:600;color:var(--text-dark);">${asset.name}</div>
+                  <div style="font-size:.8rem;color:var(--text-gray);">${asset.symbol}</div>
+                </div>
               </div>
-            </div>
-          </td>
-          <td><span style="padding: 4px 8px; background: #f1f5f9; border-radius: 6px; font-size: 0.8rem;">${asset.type}</span></td>
-          <td style="font-weight: 600;">${parseFloat(asset.quantity).toLocaleString('en-US', {maximumFractionDigits: 8})}</td>
-          <td>$${asset.price.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4})}</td>
-          <td style="font-weight: 600;">$${totalValue.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-          <td class="${changeClass}">
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <i data-feather="${changeIcon}" style="width: 14px; height: 14px;"></i>
-              ${Math.abs(asset.change).toFixed(2)}%
-            </div>
-          </td>
-        </tr>
-      `;
-      tbody.insertAdjacentHTML("beforeend", row);
-    });
+            </td>
+            <td><span style="padding:4px 8px;background:#f1f5f9;border-radius:6px;font-size:.8rem;">${asset.type}</span></td>
+            <td style="font-weight:600;">${Number(asset.quantity).toLocaleString('en-US',{maximumFractionDigits:8})}</td>
+            <td>${fmtUSD(asset.price,2,4)}</td>
+            <td style="font-weight:600;">${fmtUSD(totalValue)}</td>
+            <td class="${changeClass}">
+              <div style="display:flex;align-items:center;gap:4px;">
+                <i data-feather="${changeIcon}" style="width:14px;height:14px;"></i>
+                ${Math.abs(asset.change).toFixed(2)}%
+              </div>
+            </td>
+          </tr>`;
+        tbody.insertAdjacentHTML('beforeend', row);
+      });
 
-    feather.replace();
-    
-    // Update portfolio statistics
-    const balance = parseFloat(userData.profits || 0);
-    updatePortfolioStats(totalPortfolioValue, balance);
-    updatePortfolioChart(activeAssets);
-    
-    // Update asset count
-    document.getElementById('assetCount').textContent = `${activeAssets.length} asset${activeAssets.length !== 1 ? 's' : ''}`;
-  }
+      if (window.feather) feather.replace();
+      if (assetCountEl) assetCountEl.textContent = `${activeAssets.length} asset${activeAssets.length!==1?'s':''}`;
 
-  function updatePortfolioStats(totalInvestments, balance) {
-    const totalPortfolio = totalInvestments + balance;
-    const totalReturn = totalInvestments > 0 ? ((totalPortfolio - 1000) / 1000 * 100) : 0;
-    
-    document.getElementById('totalPortfolio').textContent = '$' + totalPortfolio.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    document.getElementById('totalInvestments').textContent = '$' + totalInvestments.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-    document.getElementById('totalReturn').textContent = (totalReturn >= 0 ? '+' : '') + totalReturn.toFixed(2) + '%';
-    
-    if (totalReturn < 0) {
-      document.getElementById('totalReturn').parentElement.querySelector('.stat-change').classList.remove('positive');
-      document.getElementById('totalReturn').parentElement.querySelector('.stat-change').classList.add('negative');
-    }
-  }
-
-  let portfolioChart = null;
-  function updatePortfolioChart(activeAssets) {
-    const ctx = document.getElementById('portfolioChart');
-    if (!ctx) return;
-
-    if (activeAssets.length === 0) {
-      if (portfolioChart) portfolioChart.destroy();
-      return;
+      updatePortfolioStats(totalPortfolioValue, balance);
+      updatePortfolioChart(activeAssets);
     }
 
-    const labels = activeAssets.map(a => a.symbol);
-    const values = activeAssets.map(a => a.quantity * a.price);
-    const colors = ['#4f46e5', '#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4899'];
+    function updatePortfolioStats(totalInvestments, balance) {
+      const totalPortfolio = totalInvestments + balance;
+      const base = 1000; // demo baseline
+      const totalReturnPct = totalInvestments > 0 ? ((totalPortfolio - base) / base * 100) : 0;
 
-    if (portfolioChart) {
-      portfolioChart.data.labels = labels;
-      portfolioChart.data.datasets[0].data = values;
-      portfolioChart.data.datasets[0].backgroundColor = colors.slice(0, labels.length);
-      portfolioChart.update();
-    } else {
-      portfolioChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: labels,
-          datasets: [{
-            data: values,
-            backgroundColor: colors.slice(0, labels.length),
-            borderWidth: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              display: false
-            },
-            tooltip: {
-              callbacks: {
-                label: function(context) {
-                  const label = context.label || '';
-                  const value = context.parsed || 0;
-                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
-                  const percentage = ((value / total) * 100).toFixed(1);
-                  return `${label}: $${value.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (${percentage}%)`;
+      if (totalPortfolioEl) totalPortfolioEl.textContent   = fmtUSD(totalPortfolio);
+      if (totalInvestmentsEl) totalInvestmentsEl.textContent = fmtUSD(totalInvestments);
+      if (totalReturnEl) totalReturnEl.textContent = `${totalReturnPct >= 0 ? '+' : ''}${totalReturnPct.toFixed(2)}%`;
+
+      // flip badge color if negative
+      const changeWrap = totalReturnEl?.parentElement?.querySelector('.stat-change');
+      if (changeWrap) {
+        changeWrap.classList.toggle('positive', totalReturnPct >= 0);
+        changeWrap.classList.toggle('negative', totalReturnPct < 0);
+      }
+    }
+
+    function updatePortfolioChart(activeAssets) {
+      const ctx = document.getElementById('portfolioChart');
+      if (!ctx) return;
+      if (activeAssets.length === 0) { if (portfolioChart) portfolioChart.destroy(); return; }
+
+      const labels = activeAssets.map(a => a.symbol);
+      const values = activeAssets.map(a => a.quantity * a.price);
+      const colors = ['#4f46e5','#10b981','#f59e0b','#3b82f6','#ef4444','#8b5cf6','#ec4899'];
+
+      if (portfolioChart) {
+        portfolioChart.data.labels = labels;
+        portfolioChart.data.datasets[0].data = values;
+        portfolioChart.data.datasets[0].backgroundColor = colors.slice(0, labels.length);
+        portfolioChart.update();
+      } else {
+        portfolioChart = new Chart(ctx, {
+          type: 'doughnut',
+          data: { labels, datasets: [{ data: values, backgroundColor: colors.slice(0, labels.length), borderWidth: 0 }] },
+          options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (c) => {
+                    const label = c.label || '';
+                    const value = c.parsed || 0;
+                    const total = c.dataset.data.reduce((a,b)=>a+b,0);
+                    const pct = total ? ((value/total)*100).toFixed(1) : '0.0';
+                    return `${label}: ${fmtUSD(value)} (${pct}%)`;
+                  }
                 }
               }
             }
           }
-        }
-      });
+        });
+      }
     }
+
+    // initial and interval refreshes
+    fetchLivePrices();
+    setInterval(fetchLivePrices, 60000);
   }
-
-  // fetch immediately on page load
-  fetchLivePrices();
-  // refresh every 1 min
-  setInterval(fetchLivePrices, 60000);
-}
-
-// Logout function (available globally)
-function logout() {
-  localStorage.removeItem('currentUser');
-  window.location.href = 'login.html';
-}
-
-function toggleMobileMenu() {
-  const menu = document.querySelector('.navbar-menu');
-  menu.classList.toggle('active');
-}
-
-// Initialize feather icons
-document.addEventListener('DOMContentLoaded', () => {
-  feather.replace();
-  
-  // Update recent activity
-  const currentUser = localStorage.getItem('currentUser');
-  if (currentUser) {
-    const userData = JSON.parse(currentUser);
-    const activityList = document.getElementById('recentActivity');
-    
-    // Add account creation activity
-    if (userData.trn_date) {
-      const createdDate = new Date(userData.trn_date).toLocaleDateString();
-      activityList.innerHTML = `
-        <li class="activity-item">
-          <div class="activity-info">
-            <div class="activity-icon">
-              <i data-feather="user-plus" style="width: 20px; height: 20px;"></i>
-            </div>
-            <div class="activity-details">
-              <h4>Account Created</h4>
-              <p>${createdDate}</p>
-            </div>
-          </div>
-        </li>
-      `;
-    }
-    
-    // Add last login activity
-    if (userData.lastLogin) {
-      const loginDate = new Date(userData.lastLogin).toLocaleDateString();
-      const loginTime = new Date(userData.lastLogin).toLocaleTimeString();
-      activityList.innerHTML += `
-        <li class="activity-item">
-          <div class="activity-info">
-            <div class="activity-icon">
-              <i data-feather="log-in" style="width: 20px; height: 20px;"></i>
-            </div>
-            <div class="activity-details">
-              <h4>Last Login</h4>
-              <p>${loginDate} at ${loginTime}</p>
-            </div>
-          </div>
-        </li>
-      `;
-    }
-    
-    feather.replace();
-  }
-});
 </script>
+
 <script src="page-transitions.js"></script>
 </body>
 </html>
