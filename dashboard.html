@@ -479,37 +479,51 @@
     }
   })();
 
-  // ---- After we know we’re authenticated ----
-  async function proceed(session) {
+ // ---- After we know we’re authenticated ----
+async function proceed(session) {
+  try {
+    // Load profile (don’t block UI forever if it fails)
     try {
-      // Load profile (don’t block UI forever if it fails)
-      try {
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('full_name, username, profits, btc, eth, dodge, usdt, xlm, xrp, shiba, ltc, last_login, trn_date')
-          .eq('id', session.user.id)
-          .single();
-        if (error) console.warn('Profile load failed:', error.message);
-        profile = data || {};
-      } catch (e) {
-        console.warn('Profile exception:', e);
-        profile = {};
-      }
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name, username, profits, btc, eth, dodge, usdt, xlm, xrp, shiba, ltc, last_login, trn_date')
+        .eq('id', session.user.id)
+        .single();
+      if (error) console.warn('Profile load failed:', error.message);
+      profile = data || {};
+      // Show Available Balance from DB (profiles.profits)
+const balEl = document.getElementById('balance');
+if (balEl) {
+  const dbProfit = Number.parseFloat(profile?.profits ?? 0) || 0;
+  balEl.textContent = fmtUSD(dbProfit);
+}
 
-      // Hydrate header + render UI
-      hydrateHeader(profile);
-      startDashboard(profile);
-    } finally {
-      // Always remove the gate so it never hangs
-      gate.remove();
+    } catch (e) {
+      console.warn('Profile exception:', e);
+      profile = {};
     }
-  }
 
-  function hydrateHeader(p) {
-    const first = (p?.full_name || '').split(' ')[0] || 'Investor';
-    const welcomeText = $('#welcomeText');
-    if (welcomeText) welcomeText.textContent = `Welcome back, ${first}`;
+    // ✅ Use session to help hydrate header if DB name missing
+    hydrateHeader(profile, session);
+    startDashboard(profile);
+  } finally {
+    gate.remove();
   }
+}
+
+// UPDATED: take session for smarter fallback
+function hydrateHeader(p, session) {
+  const welcomeText = document.querySelector('#welcomeText');
+  const meta = session?.user?.user_metadata || {};
+  const name =
+    (p?.full_name && p.full_name.trim()) ||
+    (p?.username && p.username.trim()) ||
+    (meta.full_name && meta.full_name.trim()) ||
+    (session?.user?.email && session.user.email.split('@')[0]) ||
+    'Investor';
+
+  if (welcomeText) welcomeText.textContent = `Welcome back, ${name}`;
+}
 
   function buildAssetsFromProfile(p) {
     return [
