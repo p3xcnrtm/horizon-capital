@@ -484,11 +484,18 @@ async function proceed(session) {
   try {
     // Load profile (don’t block UI forever if it fails)
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('full_name, username, profits, btc, eth, dodge, usdt, xlm, xrp, shiba, ltc, last_login, trn_date')
-        .eq('id', session.user.id)
-        .single();
+     const { data, error } = await supabase
+  .from('profiles')
+  .select(`
+    full_name,
+    username,
+    profits:profits::float8,   -- 👈 cast to number
+    btc, eth, dodge, usdt, xlm, xrp, shiba, ltc,
+    last_login, trn_date
+  `)
+  .eq('id', session.user.id)
+  .single();
+
       if (error) console.warn('Profile load failed:', error.message);
       profile = data || {};
       // Show Available Balance from DB (profiles.profits)
