@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Stock Investments | Horizon Capital</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <link rel="stylesheet" href="shared-styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        body {
+            padding-top: 72px;
+        }
+        .stock-card:hover .stock-image {
+            transform: scale(1.03);
+        }
+        .performance-bar {
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #4f46e5 0%, #10b981 100%);
+        }
+    </style>
+</head>
+<body class="font-sans antialiased text-gray-800">
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-brand">HORIZON</a>
+            <ul class="navbar-menu">
+                <li><a href="index.html" class="navbar-link">Home</a></li>
+                <li><a href="real-estate.html" class="navbar-link">Real Estate</a></li>
+                <li><a href="stocks.html" class="navbar-link">Stocks</a></li>
+                <li><a href="bonds.html" class="navbar-link">Bonds</a></li>
+                <li><a href="crypto.html" class="navbar-link">Crypto</a></li>
+                <li><a href="sign-up.html" class="navbar-btn">Sign Up</a></li>
+            </ul>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                <i data-feather="menu"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="relative pt-32 pb-20 md:pt-40 md:pb-28 hero-bg">
+        <div class="absolute inset-0 bg-cover bg-center opacity-20" style="background-image: url('https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?auto=format&fit=crop&w=1920&q=80');"></div>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div class="md:w-1/2" data-aos="fade-up">
+                <h1 class="text-4xl md:text-5xl font-bold text-white mb-6">Premium Equity Investments</h1>
+                <p class="text-xl text-indigo-100 mb-8">Access institutional-grade stock portfolios with rigorous fundamental analysis and growth potential.</p>
+                <a href="#" class="inline-flex items-center px-6 py-3 bg-white text-indigo-800 font-medium rounded-lg hover:bg-gray-100 transition">
+                    <span>Explore Portfolios</span>
+                    <i data-feather="arrow-right" class="ml-2 w-5 h-5"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Section -->
+    <section class="py-16 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-4 gap-8 text-center">
+                <div class="p-6" data-aos="fade-up" data-aos-delay="100">
+                    <div class="text-4xl font-bold text-indigo-800 mb-2">18.7%</div>
+                    <div class="text-gray-600">Average Annual Return</div>
+                </div>
+                <div class="p-6" data-aos="fade-up" data-aos-delay="200">
+                    <div class="text-4xl font-bold text-indigo-800 mb-2">$1.2B</div>
+                    <div class="text-gray-600">Assets Under Management</div>
+                </div>
+                <div class="p-6" data-aos="fade-up" data-aos-delay="300">
+                    <div class="text-4xl font-bold text-indigo-800 mb-2">42</div>
+                    <div class="text-gray-600">Countries Covered</div>
+                </div>
+                <div class="p-6" data-aos="fade-up" data-aos-delay="400">
+                    <div class="text-4xl font-bold text-indigo-800 mb-2">120+</div>
+                    <div class="text-gray-600">Companies Analyzed</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Investment Strategies -->
+    <section class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16" data-aos="fade-up">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Our Equity Strategies</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">Diversified approaches tailored to different risk profiles and investment horizons.</p>
+            </div>
+            
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2" data-aos="fade-up" data-aos-delay="100">
+                    <div class="h-48 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80');"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Blue Chip Growth</h3>
+                        <p class="text-gray-600 mb-4">Market-leading companies with strong competitive advantages and consistent earnings growth.</p>
+                        <div class="flex items-center text-indigo-600">
+                            <i data-feather="trending-up" class="w-4 h-4 mr-2"></i>
+                            <span>Target Return: 12-15%</span>
+                        </div>
+                        <div class="flex items-center text-indigo-600 mt-2">
+                            <i data-feather="clock" class="w-4 h-4 mr-2"></i>
+                            <span>Hold Period: 3-5 years</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2" data-aos="fade-up" data-aos-delay="200">
+                    <div class="h-48 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?auto=format&fit=crop&w=800&q=80');"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Emerging Markets</h3>
+                        <p class="text-gray-600 mb-4">High-growth potential companies in developing economies with favorable demographics.</p>
+                        <div class="flex items-center text-indigo-600">
+                            <i data-feather="trending-up" class="w-4 h-4 mr-2"></i>
+                            <span>Target Return: 18-22%</span>
+                        </div>
+                        <div class="flex items-center text-indigo-600 mt-2">
+                            <i data-feather="clock" class="w-4 h-4 mr-2"></i>
+                            <span>Hold Period: 5-7 years</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2" data-aos="fade-up" data-aos-delay="300">
+                    <div class="h-48 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80');"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Disruptive Innovation</h3>
+                        <p class="text-gray-600 mb-4">Companies driving technological breakthroughs and transforming industries.</p>
+                        <div class="flex items-center text-indigo-600">
+                            <i data-feather="trending-up" class="w-4 h-4 mr-2"></i>
+                            <span>Target Return: 25%+</span>
+                        </div>
+                        <div class="flex items-center text-indigo-600 mt-2">
+                            <i data-feather="clock" class="w-4 h-4 mr-2"></i>
+                            <span>Hold Period: 7-10 years</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Investment Calculator Section -->
+    <section id="calculator" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12" data-aos="fade-up">
+                <h2 class="text-3xl font-bold text-gray-900 mb-3">Stock Investment Calculator</h2>
+                <p class="text-gray-600">Calculate potential returns based on historical performance and growth projections.</p>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-8" data-aos="fade-up">
+                <!-- Calculator Form -->
+                <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Project Your Returns</h3>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="stockAmount" class="block text-sm text-gray-600 mb-2">Investment Amount (USD)</label>
+                            <input id="stockAmount" type="number" min="1000" max="10000000" step="1000" value="10000" class="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" />
+                        </div>
+                        <div>
+                            <label for="stockStrategy" class="block text-sm text-gray-600 mb-2">Investment Strategy</label>
+                            <select id="stockStrategy" class="w-full rounded-xl border border-gray-300 px-4 py-3 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="bluechip">Blue Chip Growth - 12% annual</option>
+                                <option value="emerging">Emerging Markets - 18% annual</option>
+                                <option value="disruptive">Disruptive Innovation - 25% annual</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="stockYears" class="block text-sm text-gray-600 mb-2">Investment Period</label>
+                            <select id="stockYears" class="w-full rounded-xl border border-gray-300 px-4 py-3 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="1">1 Year</option>
+                                <option value="3">3 Years</option>
+                                <option value="5" selected>5 Years</option>
+                                <option value="10">10 Years</option>
+                            </select>
+                        </div>
+                        <button id="stockCalcBtn" class="w-full px-5 py-3 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition">Calculate Returns</button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mt-6">
+                        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                            <div class="text-xs text-gray-500">Annual Return</div>
+                            <div id="stockAnnualReturn" class="text-xl font-semibold mt-1">12%</div>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                            <div class="text-xs text-gray-500">Projected Value</div>
+                            <div id="stockProjectedValue" class="text-xl font-semibold mt-1">$0.00</div>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                            <div class="text-xs text-gray-500">Total Return</div>
+                            <div id="stockTotalReturn" class="text-xl font-semibold mt-1">$0.00</div>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+                            <div class="text-xs text-gray-500">ROI</div>
+                            <div id="stockROI" class="text-xl font-semibold mt-1">0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Growth Projection</h3>
+                    <div class="h-64">
+                        <canvas id="stockChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Portfolio Showcase -->
+    <section class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16" data-aos="fade-up">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Featured Holdings</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">Curated selection of high-conviction stock positions in our flagship portfolios.</p>
+            </div>
+            
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div class="stock-card group overflow-hidden rounded-xl shadow-lg bg-white transition-all duration-300 hover:shadow-xl hover:-translate-y-2" data-aos="fade-up" data-aos-delay="100">
+                    <div class="stock-image h-48 bg-cover bg-center transition-transform duration-300" style="background-image: url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=800&q=80');"></div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-xl font-bold text-gray-900">Tech Innovators Inc.</h3>
+                            <span class="bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-0.5 rounded">TOP HOLDING</span>
+                        </div>
+                        <p class="text-gray-600 mb-4">NASDAQ: TECH | Software</p>
+                        <div class="mb-4">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span>Portfolio Weight</span>
+                                <span>8.2%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                <div class="bg-indigo-600 h-1.5 rounded-full" style="width: 82%"></div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between mb-4">
+                            <div>
+                                <div class="text-sm text-gray-500">Current Price</div>
+                                <div class="text-lg font-bold">$245.75</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">YTD Return</div>
+                                <div class="text-lg font-bold text-green-600">+32.4%</div>
+                            </div>
+                        </div>
+                        <a href="#" class="mt-6 inline-flex items-center text-indigo-600 hover:text-indigo-800 transition font-medium">
+                            <span>View Analysis</span>
+                            <i data-feather="arrow-right" class="ml-2 w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="stock-card group overflow-hidden rounded-xl shadow-lg bg-white transition-all duration-300 hover:shadow-xl hover:-translate-y-2" data-aos="fade-up" data-aos-delay="200">
+                    <div class="stock-image h-48 bg-cover bg-center transition-transform duration-300" style="background-image: url('https://images.unsplash.com/photo-1559757148-5c350d0d3c56?auto=format&fit=crop&w=800&q=80');"></div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-xl font-bold text-gray-900">BioHealth Solutions</h3>
+                            <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">NEW ADDITION</span>
+                        </div>
+                        <p class="text-gray-600 mb-4">NYSE: BIOH | Biotechnology</p>
+                        <div class="mb-4">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span>Portfolio Weight</span>
+                                <span>5.7%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                <div class="bg-indigo-600 h-1.5 rounded-full" style="width: 57%"></div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between mb-4">
+                            <div>
+                                <div class="text-sm text-gray-500">Current Price</div>
+                                <div class="text-lg font-bold">$178.30</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">YTD Return</div>
+                                <div class="text-lg font-bold text-green-600">+45.1%</div>
+                            </div>
+                        </div>
+                        <a href="#" class="mt-6 inline-flex items-center text-indigo-600 hover:text-indigo-800 transition font-medium">
+                            <span>View Analysis</span>
+                            <i data-feather="arrow-right" class="ml-2 w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="stock-card group overflow-hidden rounded-xl shadow-lg bg-white transition-all duration-300 hover:shadow-xl hover:-translate-y-2" data-aos="fade-up" data-aos-delay="300">
+                    <div class="stock-image h-48 bg-cover bg-center transition-transform duration-300" style="background-image: url('https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=800&q=80');"></div>
+                    <div class="p-6">
+                        <div class="flex justify-between items-start mb-2">
+                            <h3 class="text-xl font-bold text-gray-900">Global Industrials</h3>
+                            <span class="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded">DIVIDEND</span>
+                        </div>
+                        <p class="text-gray-600 mb-4">NYSE: GIND | Industrial</p>
+                        <div class="mb-4">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span>Portfolio Weight</span>
+                                <span>4.3%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-1.5">
+                                <div class="bg-indigo-600 h-1.5 rounded-full" style="width: 43%"></div>
+                            </div>
+                        </div>
+                        <div class="flex justify-between mb-4">
+                            <div>
+                                <div class="text-sm text-gray-500">Current Price</div>
+                                <div class="text-lg font-bold">$92.45</div>
+                            </div>
+                            <div>
+                                <div class="text-sm text-gray-500">Dividend Yield</div>
+                                <div class="text-lg font-bold text-indigo-600">3.8%</div>
+                            </div>
+                        </div>
+                        <a href="#" class="mt-6 inline-flex items-center text-indigo-600 hover:text-indigo-800 transition font-medium">
+                            <span>View Analysis</span>
+                            <i data-feather="arrow-right" class="ml-2 w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+  <footer class="bg-gray-900 text-white pt-16 pb-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid md:grid-cols-4 gap-12 mb-12">
+        <div>
+          <h3 class="text-xl font-bold mb-6">Horizon Capital</h3>
+          <p class="text-gray-400 mb-4">Premium investment solutions for discerning clients seeking wealth preservation and growth.</p>
+        </div>
+        <div>
+          <h4 class="text-lg font-semibold mb-6">Company</h4>
+          <ul class="space-y-3">
+            <li><a href="about.html" class="text-gray-400 hover:text-white transition">About Us</a></li>
+            <li><a href="privacy.html" class="text-gray-400 hover:text-white transition">Privacy Policy</a></li>
+            <li><a href="terms.html" class="text-gray-400 hover:text-white transition">Terms of Service</a></li>
+            <li><a href="disclosures.html" class="text-gray-400 hover:text-white transition">Disclosures</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-lg font-semibold mb-6">Investments</h4>
+          <ul class="space-y-3">
+            <li><a href="real-estate.html" class="text-gray-400 hover:text-white transition">Real Estate</a></li>
+            <li><a href="stocks.html" class="text-gray-400 hover:text-white transition">Stocks</a></li>
+            <li><a href="bonds.html" class="text-gray-400 hover:text-white transition">Bonds</a></li>
+            <li><a href="crypto.html" class="text-gray-400 hover:text-white transition">Crypto</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-lg font-semibold mb-6">Contact</h4>
+          <ul class="space-y-3 text-gray-400">
+            <li>450 Park Avenue, New York, NY 10022</li>
+            <li>info@horizoncapital.com</li>
+            <li>+1 (212) 555-0100</li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
+        <p class="text-gray-400 mb-4 md:mb-0">© 2025 Horizon Capital. All rights reserved.</p>
+        <div class="flex space-x-6">
+          <a href="privacy.html" class="text-gray-400 hover:text-white transition">Privacy Policy</a>
+          <a href="terms.html" class="text-gray-400 hover:text-white transition">Terms of Service</a>
+          <a href="disclosures.html" class="text-gray-400 hover:text-white transition">Disclosures</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+
+    <script>
+        AOS.init();
+        feather.replace();
+        
+        function toggleMobileMenu() {
+            const menu = document.querySelector('.navbar-menu');
+            menu.classList.toggle('active');
+        }
+
+        // Stock Calculator
+        const stockReturns = {
+            bluechip: 0.12,
+            emerging: 0.18,
+            disruptive: 0.25
+        };
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(amount);
+        }
+
+        function calculateStockReturns() {
+            const amount = parseFloat(document.getElementById('stockAmount').value) || 10000;
+            const strategy = document.getElementById('stockStrategy').value;
+            const years = parseInt(document.getElementById('stockYears').value);
+            
+            const annualReturn = stockReturns[strategy];
+            const projectedValue = amount * Math.pow(1 + annualReturn, years);
+            const totalReturn = projectedValue - amount;
+            const roi = ((projectedValue - amount) / amount) * 100;
+
+            document.getElementById('stockAnnualReturn').textContent = (annualReturn * 100).toFixed(0) + '%';
+            document.getElementById('stockProjectedValue').textContent = formatCurrency(projectedValue);
+            document.getElementById('stockTotalReturn').textContent = formatCurrency(totalReturn);
+            document.getElementById('stockROI').textContent = roi.toFixed(1) + '%';
+
+            // Update chart
+            updateStockChart(amount, annualReturn, years);
+        }
+
+        function updateStockChart(initialAmount, annualReturn, years) {
+            const data = [];
+            const labels = [];
+            for (let i = 0; i <= years; i++) {
+                labels.push(`Year ${i}`);
+                data.push(initialAmount * Math.pow(1 + annualReturn, i));
+            }
+            
+            stockChart.data.labels = labels;
+            stockChart.data.datasets[0].data = data;
+            stockChart.update();
+        }
+
+        // Chart setup
+        const ctx = document.getElementById('stockChart');
+        const stockChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Year 0', 'Year 1', 'Year 2', 'Year 3', 'Year 4', 'Year 5'],
+                datasets: [{
+                    label: 'Portfolio Value',
+                    data: [10000, 11200, 12544, 14049, 15735, 17623],
+                    borderColor: '#4f46e5',
+                    backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        ticks: { 
+                            color: '#475569',
+                            callback: function(value) {
+                                return '$' + (value / 1000).toFixed(0) + 'k';
+                            }
+                        },
+                        grid: { color: 'rgba(148,163,184,0.2)' }
+                    },
+                    x: {
+                        ticks: { color: '#475569' },
+                        grid: { color: 'rgba(148,163,184,0.15)' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => ` ${formatCurrency(ctx.parsed.y)}`
+                        }
+                    }
+                }
+            }
+        });
+
+        document.getElementById('stockCalcBtn').addEventListener('click', calculateStockReturns);
+        document.getElementById('stockAmount').addEventListener('input', calculateStockReturns);
+        document.getElementById('stockStrategy').addEventListener('change', calculateStockReturns);
+        document.getElementById('stockYears').addEventListener('change', calculateStockReturns);
+
+        // Initial calculation
+        calculateStockReturns();
+    </script>
+<script src="page-transitions.js"></script>
+</body>
+</html>

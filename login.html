@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login | Horizon Capital</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script src="https://unpkg.com/feather-icons"></script>
+  <link rel="stylesheet" href="shared-styles.css">
+  <style>
+    body {
+      background: var(--primary-gradient);
+      min-height: 100vh;
+      padding-top: 72px;
+    }
+    .login-container {
+      max-width: 450px;
+      margin: 2rem auto;
+      padding: 2rem;
+    }
+    .form-input {
+      margin-top: 0.5rem;
+    }
+    .alert-error {
+      background: #fee2e2;
+      color: #dc2626;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      display: none;
+    }
+  </style>
+</head>
+<body class="font-sans antialiased">
+
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="navbar-brand">HORIZON</a>
+      <ul class="navbar-menu">
+        <li><a href="index.html" class="navbar-link">Home</a></li>
+        <li><a href="real-estate.html" class="navbar-link">Real Estate</a></li>
+        <li><a href="stocks.html" class="navbar-link">Stocks</a></li>
+        <li><a href="bonds.html" class="navbar-link">Bonds</a></li>
+        <li><a href="crypto.html" class="navbar-link">Crypto</a></li>
+        <li><a href="sign-up.html" class="navbar-btn">Sign Up</a></li>
+      </ul>
+      <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+        <i data-feather="menu"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="login-container">
+    <div class="card">
+      <div class="alert-error" id="errorAlert">
+        Invalid email or password. Please try again.
+      </div>
+      
+      <h2 style="text-align: center; margin-bottom: 1.5rem; color: var(--primary-color); font-size: 1.75rem;">Login to Horizon</h2>
+      
+      <form id="loginForm" onsubmit="handleLogin(event); return false;">
+        <div class="form-group">
+          <label for="email" class="form-label">Email</label>
+          <input id="email" type="email" class="form-input" name="email" required placeholder="you@example.com">
+          <div id="emailError" class="text-red-500 text-sm mt-1 hidden">Please enter a valid email.</div>
+        </div>
+        
+        <div class="form-group">
+          <label for="password" class="form-label">Password</label>
+          <input id="password" type="password" class="form-input" name="password" required placeholder="Enter your password">
+          <div id="passwordError" class="text-red-500 text-sm mt-1 hidden">Password is required.</div>
+        </div>
+        
+        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Login</button>
+      </form>
+      
+      <div style="text-align: center; margin-top: 1.5rem; color: var(--text-gray);">
+        <span>Don't have an account? </span>
+        <a href="sign-up.html" class="text-primary" style="font-weight: 600; text-decoration: none;">Sign Up</a>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    AOS.init();
+    feather.replace();
+
+    function toggleMobileMenu() {
+      const menu = document.querySelector('.navbar-menu');
+      menu.classList.toggle('active');
+    }
+
+    function handleLogin(event) {
+      event.preventDefault();
+      
+      // Reset errors
+      document.getElementById('errorAlert').style.display = 'none';
+      document.getElementById('emailError').classList.add('hidden');
+      document.getElementById('passwordError').classList.add('hidden');
+      
+      // Get form values
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      
+      // Validate form
+      let isValid = true;
+      
+      if (!email.includes('@')) {
+        document.getElementById('emailError').classList.remove('hidden');
+        isValid = false;
+      }
+      
+      if (password.trim() === '') {
+        document.getElementById('passwordError').classList.remove('hidden');
+        isValid = false;
+      }
+      
+      if (isValid) {
+        // Get users from localStorage
+        const users = JSON.parse(localStorage.getItem('users') || '[]');
+        
+        // Find user with matching email
+        const user = users.find(u => u.email === email);
+        
+        if (user && atob(user.password) === password) {
+          // Login successful - update last login
+          user.lastLogin = new Date().toISOString();
+          
+          // Set current user session
+          localStorage.setItem('currentUser', JSON.stringify(user));
+          
+          // Redirect to dashboard
+          window.location.href = 'dashboard.html';
+        } else {
+          // Show error
+          document.getElementById('errorAlert').style.display = 'block';
+        }
+      }
+    }
+    
+    // Check if user is already logged in
+    window.addEventListener('DOMContentLoaded', () => {
+      const currentUser = localStorage.getItem('currentUser');
+      if (currentUser) {
+        window.location.href = 'dashboard.html';
+      }
+      feather.replace();
+    });
+  </script>
+<script src="page-transitions.js"></script>
+</body>
+</html>

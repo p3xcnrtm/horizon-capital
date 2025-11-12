@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bonds | Horizon Capital</title>
+  <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+  <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+  <script src="https://unpkg.com/feather-icons"></script>
+  <link rel="stylesheet" href="shared-styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    body {
+      padding-top: 72px;
+    }
+    .hero-bg {
+      background: var(--primary-gradient);
+    }
+    .bond-card {
+      transition: all 0.3s ease;
+    }
+    .bond-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+    }
+  </style>
+</head>
+<body class="font-sans antialiased text-gray-800">
+  <!-- Navigation -->
+  <nav class="navbar">
+    <div class="navbar-container">
+      <a href="index.html" class="navbar-brand">HORIZON</a>
+      <ul class="navbar-menu">
+        <li><a href="index.html" class="navbar-link">Home</a></li>
+        <li><a href="real-estate.html" class="navbar-link">Real Estate</a></li>
+        <li><a href="stocks.html" class="navbar-link">Stocks</a></li>
+        <li><a href="bonds.html" class="navbar-link">Bonds</a></li>
+        <li><a href="crypto.html" class="navbar-link">Crypto</a></li>
+        <li><a href="sign-up.html" class="navbar-btn">Sign Up</a></li>
+      </ul>
+      <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+        <i data-feather="menu"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <div class="relative min-h-[60vh] flex items-center pt-32 pb-16 hero-bg">
+    <div class="absolute inset-0 bg-cover bg-center opacity-20" style="background-image: url('https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1920&q=80');"></div>
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center z-10 relative">
+      <h1 class="text-5xl font-bold text-white mb-6">Fixed Income Bonds</h1>
+      <p class="text-xl text-indigo-100 mb-8">Stable returns with capital preservation. Invest in government, corporate, and municipal bonds with predictable income streams and low volatility.</p>
+      <a href="#planner" class="inline-flex items-center px-8 py-4 bg-white text-indigo-800 font-bold rounded-full hover:bg-gray-100 transition">
+        <span>Calculate Returns</span>
+        <i data-feather="arrow-right" class="ml-2 w-5 h-5"></i>
+      </a>
+    </div>
+  </div>
+
+  <!-- Stats Section -->
+  <section class="py-16 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid md:grid-cols-4 gap-8 text-center">
+        <div class="p-6" data-aos="fade-up" data-aos-delay="100">
+          <div class="text-4xl font-bold text-indigo-800 mb-2">4.2%</div>
+          <div class="text-gray-600">Average Yield</div>
+        </div>
+        <div class="p-6" data-aos="fade-up" data-aos-delay="200">
+          <div class="text-4xl font-bold text-indigo-800 mb-2">$650M</div>
+          <div class="text-gray-600">Bond Portfolio Value</div>
+        </div>
+        <div class="p-6" data-aos="fade-up" data-aos-delay="300">
+          <div class="text-4xl font-bold text-indigo-800 mb-2">98%</div>
+          <div class="text-gray-600">Investment Grade Rated</div>
+        </div>
+        <div class="p-6" data-aos="fade-up" data-aos-delay="400">
+          <div class="text-4xl font-bold text-indigo-800 mb-2">2.1%</div>
+          <div class="text-gray-600">Average Default Rate</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Investment Planner Section -->
+  <section id="planner" class="py-20 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-12" data-aos="fade-up">
+        <h2 class="text-3xl font-bold text-gray-900 mb-3">Bond Investment Calculator</h2>
+        <p class="text-gray-600">Minimum investment: <span class="font-semibold">$1,000</span> · Maximum: <span class="font-semibold">$10,000,000</span></p>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-8" data-aos="fade-up">
+        <!-- Calculator Form -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg">
+          <h3 class="text-lg font-semibold text-gray-800 mb-4">Calculate Your Returns</h3>
+          <div class="space-y-4">
+            <div>
+              <label for="bondAmount" class="block text-sm text-gray-600 mb-2">Investment Amount (USD)</label>
+              <input id="bondAmount" type="number" min="1000" max="10000000" step="1000" value="10000" class="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" />
+            </div>
+            <div>
+              <label for="bondType" class="block text-sm text-gray-600 mb-2">Bond Type</label>
+              <select id="bondType" class="w-full rounded-xl border border-gray-300 px-4 py-3 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="government">Government Bonds - 4.2% Yield</option>
+                <option value="corporate">Corporate Bonds - 5.5% Yield</option>
+                <option value="municipal">Municipal Bonds - 3.8% Yield</option>
+              </select>
+            </div>
+            <div>
+              <label for="bondMaturity" class="block text-sm text-gray-600 mb-2">Maturity Period</label>
+              <select id="bondMaturity" class="w-full rounded-xl border border-gray-300 px-4 py-3 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                <option value="1">1 Year</option>
+                <option value="3">3 Years</option>
+                <option value="5" selected>5 Years</option>
+                <option value="10">10 Years</option>
+                <option value="30">30 Years</option>
+              </select>
+            </div>
+            <button id="bondCalcBtn" class="w-full px-5 py-3 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 transition">Calculate Returns</button>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 mt-6">
+            <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <div class="text-xs text-gray-500">Annual Yield</div>
+              <div id="bondYield" class="text-xl font-semibold mt-1">4.2%</div>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <div class="text-xs text-gray-500">Annual Income</div>
+              <div id="bondAnnualIncome" class="text-xl font-semibold mt-1">$420.00</div>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <div class="text-xs text-gray-500">Total Return (Maturity)</div>
+              <div id="bondTotalReturn" class="text-xl font-semibold mt-1">$0.00</div>
+            </div>
+            <div class="rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <div class="text-xs text-gray-500">Total Interest</div>
+              <div id="bondTotalInterest" class="text-xl font-semibold mt-1">$0.00</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart -->
+        <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg">
+          <h3 class="text-lg font-semibold text-gray-800 mb-3">Yield Comparison</h3>
+          <div class="h-64">
+            <canvas id="bondChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bond Types Section -->
+  <section class="py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16" data-aos="fade-up">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">Bond Types & Strategies</h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">Diversified bond portfolios tailored to different risk profiles and investment objectives.</p>
+      </div>
+      
+      <div class="grid md:grid-cols-3 gap-8">
+        <div class="bg-gray-50 rounded-xl p-6" data-aos="fade-up" data-aos-delay="100">
+          <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+            <i data-feather="shield" class="w-6 h-6 text-indigo-600"></i>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 mb-2">Government Bonds</h3>
+          <p class="text-gray-600 mb-4">Backed by the full faith and credit of the government. Lowest risk with stable returns.</p>
+          <div class="flex items-center text-indigo-600 mb-2">
+            <i data-feather="trending-up" class="w-4 h-4 mr-2"></i>
+            <span>Yield: 3.5% - 4.5%</span>
+          </div>
+          <div class="flex items-center text-indigo-600">
+            <i data-feather="award" class="w-4 h-4 mr-2"></i>
+            <span>Rating: AAA</span>
+          </div>
+        </div>
+        
+        <div class="bg-gray-50 rounded-xl p-6" data-aos="fade-up" data-aos-delay="200">
+          <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+            <i data-feather="briefcase" class="w-6 h-6 text-indigo-600"></i>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 mb-2">Corporate Bonds</h3>
+          <p class="text-gray-600 mb-4">Issued by corporations to raise capital. Higher yields with moderate risk.</p>
+          <div class="flex items-center text-indigo-600 mb-2">
+            <i data-feather="trending-up" class="w-4 h-4 mr-2"></i>
+            <span>Yield: 4.5% - 6.5%</span>
+          </div>
+          <div class="flex items-center text-indigo-600">
+            <i data-feather="award" class="w-4 h-4 mr-2"></i>
+            <span>Rating: AA to BBB</span>
+          </div>
+        </div>
+        
+        <div class="bg-gray-50 rounded-xl p-6" data-aos="fade-up" data-aos-delay="300">
+          <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mb-4">
+            <i data-feather="map-pin" class="w-6 h-6 text-indigo-600"></i>
+          </div>
+          <h3 class="text-xl font-bold text-gray-900 mb-2">Municipal Bonds</h3>
+          <p class="text-gray-600 mb-4">Tax-exempt bonds issued by state and local governments. Ideal for high-income investors.</p>
+          <div class="flex items-center text-indigo-600 mb-2">
+            <i data-feather="trending-up" class="w-4 h-4 mr-2"></i>
+            <span>Yield: 3.0% - 4.5%</span>
+          </div>
+          <div class="flex items-center text-indigo-600">
+            <i data-feather="award" class="w-4 h-4 mr-2"></i>
+            <span>Tax-Exempt</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bonds List Section -->
+  <section id="bond-list" class="py-20 bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center mb-16" data-aos="fade-up">
+        <h2 class="text-3xl font-bold text-gray-900 mb-4">Available Bonds</h2>
+        <p class="text-xl text-gray-600 max-w-3xl mx-auto">Choose from government, corporate, and municipal bonds tailored to your investment goals.</p>
+      </div>
+      <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="bond-card bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2" data-aos="fade-up">
+          <div class="h-40 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1579621970563-ebec7560ff3e?auto=format&fit=crop&w=800&q=80');">
+            <div class="h-full bg-gradient-to-br from-indigo-600/80 to-indigo-800/80 flex items-center justify-center">
+              <i data-feather="shield" class="w-16 h-16 text-white"></i>
+            </div>
+          </div>
+          <div class="p-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-2">US Treasury Bond 10Y</h3>
+            <p class="text-gray-600 mb-4">Government | AAA Rated</p>
+            <div class="space-y-2 mb-4">
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Yield:</span>
+                <span class="font-semibold text-green-600">4.2%</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Maturity:</span>
+                <span class="font-semibold">10 Years</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Minimum:</span>
+                <span class="font-semibold">$1,000</span>
+              </div>
+            </div>
+            <a href="#" class="inline-flex items-center text-indigo-600 hover:text-indigo-800 transition font-medium">
+              <span>View Details</span>
+              <i data-feather="arrow-right" class="ml-2 w-4 h-4"></i>
+            </a>
+          </div>
+        </div>
+        
+        <div class="bond-card bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2" data-aos="fade-up" data-aos-delay="100">
+          <div class="h-40 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&w=800&q=80');">
+            <div class="h-full bg-gradient-to-br from-indigo-600/80 to-indigo-800/80 flex items-center justify-center">
+              <i data-feather="briefcase" class="w-16 h-16 text-white"></i>
+            </div>
+          </div>
+          <div class="p-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Corporate Bond - Apple Inc.</h3>
+            <p class="text-gray-600 mb-4">Corporate | AA+ Rated</p>
+            <div class="space-y-2 mb-4">
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Yield:</span>
+                <span class="font-semibold text-green-600">5.1%</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Maturity:</span>
+                <span class="font-semibold">5 Years</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Minimum:</span>
+                <span class="font-semibold">$5,000</span>
+              </div>
+            </div>
+            <a href="#" class="inline-flex items-center text-indigo-600 hover:text-indigo-800 transition font-medium">
+              <span>View Details</span>
+              <i data-feather="arrow-right" class="ml-2 w-4 h-4"></i>
+            </a>
+          </div>
+        </div>
+        
+        <div class="bond-card bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2" data-aos="fade-up" data-aos-delay="200">
+          <div class="h-40 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&w=800&q=80');">
+            <div class="h-full bg-gradient-to-br from-indigo-600/80 to-indigo-800/80 flex items-center justify-center">
+              <i data-feather="map-pin" class="w-16 h-16 text-white"></i>
+            </div>
+          </div>
+          <div class="p-6">
+            <h3 class="text-xl font-bold text-gray-900 mb-2">Municipal Bond - NY City</h3>
+            <p class="text-gray-600 mb-4">Municipal | A Rated</p>
+            <div class="space-y-2 mb-4">
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Yield:</span>
+                <span class="font-semibold text-green-600">3.8%</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Maturity:</span>
+                <span class="font-semibold">7 Years</span>
+              </div>
+              <div class="flex justify-between text-sm">
+                <span class="text-gray-500">Tax Status:</span>
+                <span class="font-semibold text-green-600">Tax-Exempt</span>
+              </div>
+            </div>
+            <a href="#" class="inline-flex items-center text-indigo-600 hover:text-indigo-800 transition font-medium">
+              <span>View Details</span>
+              <i data-feather="arrow-right" class="ml-2 w-4 h-4"></i>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="bg-gray-900 text-white pt-16 pb-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid md:grid-cols-4 gap-12 mb-12">
+        <div>
+          <h3 class="text-xl font-bold mb-6">Horizon Capital</h3>
+          <p class="text-gray-400 mb-4">Premium investment solutions for discerning clients seeking wealth preservation and growth.</p>
+        </div>
+        <div>
+          <h4 class="text-lg font-semibold mb-6">Company</h4>
+          <ul class="space-y-3">
+            <li><a href="about.html" class="text-gray-400 hover:text-white transition">About Us</a></li>
+            <li><a href="privacy.html" class="text-gray-400 hover:text-white transition">Privacy Policy</a></li>
+            <li><a href="terms.html" class="text-gray-400 hover:text-white transition">Terms of Service</a></li>
+            <li><a href="disclosures.html" class="text-gray-400 hover:text-white transition">Disclosures</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-lg font-semibold mb-6">Investments</h4>
+          <ul class="space-y-3">
+            <li><a href="real-estate.html" class="text-gray-400 hover:text-white transition">Real Estate</a></li>
+            <li><a href="stocks.html" class="text-gray-400 hover:text-white transition">Stocks</a></li>
+            <li><a href="bonds.html" class="text-gray-400 hover:text-white transition">Bonds</a></li>
+            <li><a href="crypto.html" class="text-gray-400 hover:text-white transition">Crypto</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-lg font-semibold mb-6">Contact</h4>
+          <ul class="space-y-3 text-gray-400">
+            <li>450 Park Avenue, New York, NY 10022</li>
+            <li>info@horizoncapital.com</li>
+            <li>+1 (212) 555-0100</li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
+        <p class="text-gray-400 mb-4 md:mb-0">© 2025 Horizon Capital. All rights reserved.</p>
+        <div class="flex space-x-6">
+          <a href="privacy.html" class="text-gray-400 hover:text-white transition">Privacy Policy</a>
+          <a href="terms.html" class="text-gray-400 hover:text-white transition">Terms of Service</a>
+          <a href="disclosures.html" class="text-gray-400 hover:text-white transition">Disclosures</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <script>
+    AOS.init();
+    feather.replace();
+    
+    function toggleMobileMenu() {
+      const menu = document.querySelector('.navbar-menu');
+      menu.classList.toggle('active');
+    }
+
+    // Bond Calculator
+    const bondYields = {
+      government: 0.042,
+      corporate: 0.055,
+      municipal: 0.038
+    };
+
+    function formatCurrency(amount) {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(amount);
+    }
+
+    function calculateBondReturns() {
+      const amount = parseFloat(document.getElementById('bondAmount').value) || 10000;
+      const bondType = document.getElementById('bondType').value;
+      const maturity = parseInt(document.getElementById('bondMaturity').value);
+      
+      const yieldRate = bondYields[bondType];
+      const annualIncome = amount * yieldRate;
+      const totalInterest = annualIncome * maturity;
+      const totalReturn = amount + totalInterest;
+
+      document.getElementById('bondYield').textContent = (yieldRate * 100).toFixed(2) + '%';
+      document.getElementById('bondAnnualIncome').textContent = formatCurrency(annualIncome);
+      document.getElementById('bondTotalReturn').textContent = formatCurrency(totalReturn);
+      document.getElementById('bondTotalInterest').textContent = formatCurrency(totalInterest);
+
+      // Update chart
+      updateBondChart();
+    }
+
+    function updateBondChart() {
+      const yields = [
+        bondYields.government * 100,
+        bondYields.corporate * 100,
+        bondYields.municipal * 100
+      ];
+      
+      bondChart.data.datasets[0].data = yields;
+      bondChart.update();
+    }
+
+    // Chart setup
+    const ctx = document.getElementById('bondChart');
+    const bondChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Government', 'Corporate', 'Municipal'],
+        datasets: [{
+          label: 'Yield (%)',
+          data: [4.2, 5.5, 3.8],
+          backgroundColor: ['#4f46e5', '#6366f1', '#10b981'],
+          borderColor: ['#4338ca', '#4f46e5', '#059669'],
+          borderWidth: 2
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: { 
+              color: '#475569',
+              callback: function(value) {
+                return value + '%';
+              }
+            },
+            grid: { color: 'rgba(148,163,184,0.2)' }
+          },
+          x: {
+            ticks: { color: '#475569' },
+            grid: { color: 'rgba(148,163,184,0.15)' }
+          }
+        },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (ctx) => ` ${ctx.parsed.y.toFixed(2)}%`
+            }
+          }
+        }
+      }
+    });
+
+    document.getElementById('bondCalcBtn').addEventListener('click', calculateBondReturns);
+    document.getElementById('bondAmount').addEventListener('input', calculateBondReturns);
+    document.getElementById('bondType').addEventListener('change', calculateBondReturns);
+    document.getElementById('bondMaturity').addEventListener('change', calculateBondReturns);
+
+    // Initial calculation
+    calculateBondReturns();
+  </script>
+<script src="page-transitions.js"></script>
+</body>
+</html>

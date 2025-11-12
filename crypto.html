@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto | Horizon Capital</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script src="https://unpkg.com/feather-icons"></script>
+    <link rel="stylesheet" href="shared-styles.css">
+    <style>
+        body {
+            padding-top: 72px;
+        }
+        .hero-bg {
+            background: var(--primary-gradient);
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body class="font-sans antialiased text-gray-800">
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="navbar-container">
+            <a href="index.html" class="navbar-brand">HORIZON</a>
+            <ul class="navbar-menu">
+                <li><a href="index.html" class="navbar-link">Home</a></li>
+                <li><a href="real-estate.html" class="navbar-link">Real Estate</a></li>
+                <li><a href="stocks.html" class="navbar-link">Stocks</a></li>
+                <li><a href="bonds.html" class="navbar-link">Bonds</a></li>
+                <li><a href="crypto.html" class="navbar-link">Crypto</a></li>
+                <li><a href="sign-up.html" class="navbar-btn">Sign Up</a></li>
+            </ul>
+            <button class="mobile-menu-toggle" onclick="toggleMobileMenu()">
+                <i data-feather="menu"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <div class="relative min-h-[60vh] flex items-center pt-32 pb-16 hero-bg">
+        <div class="absolute inset-0 bg-cover bg-center opacity-20" style="background-image: url('https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=1920&q=80');"></div>
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center z-10 relative">
+            <h1 class="text-5xl font-bold text-white mb-6">Crypto</h1>
+            <p class="text-xl text-indigo-100 mb-8">Digital asset investments with institutional-grade security. Access top cryptocurrencies and blockchain projects with expert guidance.</p>
+            <a href="#planner" class="inline-flex items-center px-8 py-4 bg-white text-indigo-800 font-bold rounded-full hover:bg-gray-100 transition">
+                <span>Plan Investment</span>
+                <i data-feather="arrow-right" class="ml-2 w-5 h-5"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Investment Planner Section -->
+    <section id="planner" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12" data-aos="fade-up">
+                <h2 class="text-3xl font-bold text-gray-900 mb-3">Investment Planner</h2>
+                <p class="text-gray-600">Minimum investment: <span class="font-semibold">$500</span> · Opportunity range: <span class="font-semibold">$500</span> to <span class="font-semibold">$1,500,000</span></p>
+            </div>
+
+            <div class="grid lg:grid-cols-2 gap-8" data-aos="fade-up">
+                <!-- Form and Summary -->
+                <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6">
+                    <div class="grid sm:grid-cols-2 gap-5">
+                        <div>
+                            <label for="amount" class="block text-sm text-gray-600 mb-2">Investment Amount (USD)</label>
+                            <input id="amount" name="amount" type="number" min="500" max="1500000" step="50" value="500" inputmode="decimal" placeholder="e.g. 10000" class="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" aria-describedby="amountHint amountError" />
+                            <p id="amountHint" class="mt-2 text-xs text-gray-500">Enter an amount between $500 and $1,500,000.</p>
+                            <p id="amountError" class="hidden mt-2 text-sm text-red-500">Amount must be between $500 and $1,500,000.</p>
+                        </div>
+                        <div>
+                            <label for="risk" class="block text-sm text-gray-600 mb-2">Risk Profile</label>
+                            <select id="risk" name="risk" class="w-full rounded-xl border border-gray-300 px-4 py-3 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="low">Low Risk — 5% per month</option>
+                                <option value="high">High Risk — 12% per month</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="contribution" class="block text-sm text-gray-600 mb-2">Regular Contribution Amount</label>
+                            <input id="contribution" name="contribution" type="number" min="0" step="50" value="0" inputmode="decimal" placeholder="e.g. 1000" class="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none" />
+                            <p class="mt-2 text-xs text-gray-500">Optional. Add recurring contributions to your projection.</p>
+                        </div>
+                        <div>
+                            <label for="frequency" class="block text-sm text-gray-600 mb-2">Compounding & Contribution Frequency</label>
+                            <select id="frequency" name="frequency" class="w-full rounded-xl border border-gray-300 px-4 py-3 bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                                <option value="monthly">Monthly</option>
+                                <option value="weekly">Weekly</option>
+                            </select>
+                            <p class="mt-2 text-xs text-gray-500">Choose how profits compound and how often contributions are added.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-3 mt-5">
+                        <button id="calcBtn" class="px-5 py-3 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700">Calculate Returns</button>
+                        <button id="resetBtn" type="button" class="px-5 py-3 rounded-xl border border-gray-300 text-gray-700 font-semibold hover:bg-gray-100">Reset</button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mt-6">
+                        <div class="rounded-xl border border-gray-200 bg-white p-4">
+                            <div class="text-xs text-gray-500">Monthly ROI</div>
+                            <div id="roiLabel" class="text-xl font-semibold mt-1">5%</div>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 bg-white p-4">
+                            <div class="text-xs text-gray-500">Projected Monthly Profit</div>
+                            <div id="monthlyProfit" class="text-xl font-semibold mt-1">$25.00</div>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 bg-white p-4">
+                            <div class="text-xs text-gray-500">12-Month Projection (Selected Risk)</div>
+                            <div id="futureValueSelected" class="text-xl font-semibold mt-1">$0.00</div>
+                        </div>
+                        <div class="rounded-xl border border-gray-200 bg-white p-4">
+                            <div class="text-xs text-gray-500">Expected Profit (12 Months)</div>
+                            <div id="expectedProfit" class="text-xl font-semibold mt-1">$0.00</div>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-4">ROI assumptions: Low risk = 5% per month, High risk = 12% per month. Compounding and contributions are applied at the selected frequency. Returns are illustrative and not guaranteed.</p>
+                </div>
+
+                <!-- Chart -->
+                <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-3">Monthly Profit Comparison</h3>
+                    <div class="h-64">
+                        <canvas id="profitChart" aria-label="Monthly profit comparison for low vs high risk"></canvas>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-3">Bars show the monthly profit (in USD) for the entered amount at both risk levels.</p>
+                </div>
+            </div>
+
+            <!-- Returns Table -->
+            <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 mt-8" data-aos="fade-up">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">Returns Table</h3>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Risk</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly ROI</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Investment</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Monthly Profit</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Projected Value in 12 Months</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td class="px-4 py-3 text-sm text-gray-700"><span class="inline-block px-2 py-1 text-xs font-semibold rounded-full border border-blue-300 text-blue-700">Low</span></td>
+                                <td class="px-4 py-3 text-sm text-gray-700">5%</td>
+                                <td id="lowInv" class="px-4 py-3 text-sm text-gray-700 text-right">$500.00</td>
+                                <td id="lowProfit" class="px-4 py-3 text-sm text-gray-700 text-right">$25.00</td>
+                                <td id="low12m" class="px-4 py-3 text-sm text-gray-700 text-right">$8,958.85</td>
+                            </tr>
+                            <tr>
+                                <td class="px-4 py-3 text-sm text-gray-700"><span class="inline-block px-2 py-1 text-xs font-semibold rounded-full border border-red-300 text-red-600">High</span></td>
+                                <td class="px-4 py-3 text-sm text-gray-700">12%</td>
+                                <td id="highInv" class="px-4 py-3 text-sm text-gray-700 text-right">$500.00</td>
+                                <td id="highProfit" class="px-4 py-3 text-sm text-gray-700 text-right">$60.00</td>
+                                <td id="high12m" class="px-4 py-3 text-sm text-gray-700 text-right">$27,632.84</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-xs text-gray-500 mt-3">12-month projection assumes monthly compounding at the stated ROI.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Crypto List Section -->
+    <section id="crypto-list" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16" data-aos="fade-up">
+                <h2 class="text-3xl font-bold text-gray-900 mb-4">Available Cryptocurrencies</h2>
+                <p class="text-xl text-gray-600 max-w-3xl mx-auto">Invest in leading cryptocurrencies and diversify your digital asset portfolio.</p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <!-- Example Crypto Card -->
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2" data-aos="fade-up">
+                    <div class="h-40 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&w=800&q=80')"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Bitcoin (BTC)</h3>
+                        <p class="text-gray-600 mb-4">The original cryptocurrency and digital gold standard.</p>
+                        <div class="mb-4">
+                            <span class="inline-block bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded">Market Cap: $1.2T</span>
+                        </div>
+                        <a href="#" class="inline-flex items-center text-indigo-600 hover:text-indigo-800 transition font-medium">
+                            <span>View Details</span>
+                            <i data-feather="arrow-right" class="ml-2 w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2" data-aos="fade-up" data-aos-delay="100">
+                    <div class="h-40 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1620321023374-d1a68fbc720e?auto=format&fit=crop&w=800&q=80')"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Ethereum (ETH)</h3>
+                        <p class="text-gray-600 mb-4">Smart contract platform powering the decentralized economy.</p>
+                        <div class="mb-4">
+                            <span class="inline-block bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">Market Cap: $400B</span>
+                        </div>
+                        <a href="#" class="inline-flex items-center text-indigo-600 hover:text-indigo-800 transition font-medium">
+                            <span>View Details</span>
+                            <i data-feather="arrow-right" class="ml-2 w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-2" data-aos="fade-up" data-aos-delay="200">
+                    <div class="h-40 bg-cover bg-center" style="background-image: url('https://images.unsplash.com/photo-1639762681057-408e52192e54?auto=format&fit=crop&w=800&q=80')"></div>
+                    <div class="p-6">
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Solana (SOL)</h3>
+                        <p class="text-gray-600 mb-4">High-performance blockchain for decentralized apps and crypto projects.</p>
+                        <div class="mb-4">
+                            <span class="inline-block bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">Market Cap: $60B</span>
+                        </div>
+                        <a href="#" class="inline-flex items-center text-indigo-600 hover:text-indigo-800 transition font-medium">
+                            <span>View Details</span>
+                            <i data-feather="arrow-right" class="ml-2 w-4 h-4"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+ <!-- Footer -->
+  <footer class="bg-gray-900 text-white pt-16 pb-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid md:grid-cols-4 gap-12 mb-12">
+        <div>
+          <h3 class="text-xl font-bold mb-6">Horizon Capital</h3>
+          <p class="text-gray-400 mb-4">Premium investment solutions for discerning clients seeking wealth preservation and growth.</p>
+        </div>
+        <div>
+          <h4 class="text-lg font-semibold mb-6">Company</h4>
+          <ul class="space-y-3">
+            <li><a href="about.html" class="text-gray-400 hover:text-white transition">About Us</a></li>
+            <li><a href="privacy.html" class="text-gray-400 hover:text-white transition">Privacy Policy</a></li>
+            <li><a href="terms.html" class="text-gray-400 hover:text-white transition">Terms of Service</a></li>
+            <li><a href="disclosures.html" class="text-gray-400 hover:text-white transition">Disclosures</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-lg font-semibold mb-6">Investments</h4>
+          <ul class="space-y-3">
+            <li><a href="real-estate.html" class="text-gray-400 hover:text-white transition">Real Estate</a></li>
+            <li><a href="stocks.html" class="text-gray-400 hover:text-white transition">Stocks</a></li>
+            <li><a href="bonds.html" class="text-gray-400 hover:text-white transition">Bonds</a></li>
+            <li><a href="crypto.html" class="text-gray-400 hover:text-white transition">Crypto</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4 class="text-lg font-semibold mb-6">Contact</h4>
+          <ul class="space-y-3 text-gray-400">
+            <li>450 Park Avenue, New York, NY 10022</li>
+            <li>info@horizoncapital.com</li>
+            <li>+1 (212) 555-0100</li>
+          </ul>
+        </div>
+      </div>
+      <div class="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center">
+        <p class="text-gray-400 mb-4 md:mb-0">© 2025 Horizon Capital. All rights reserved.</p>
+        <div class="flex space-x-6">
+          <a href="privacy.html" class="text-gray-400 hover:text-white transition">Privacy Policy</a>
+          <a href="terms.html" class="text-gray-400 hover:text-white transition">Terms of Service</a>
+          <a href="disclosures.html" class="text-gray-400 hover:text-white transition">Disclosures</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+    <script>
+      AOS.init();
+      feather.replace();
+      
+      function toggleMobileMenu() {
+          const menu = document.querySelector('.navbar-menu');
+          menu.classList.toggle('active');
+      }
+
+      (function() {
+        const MIN = 500;
+        const MAX = 1_500_000;
+        const ROI = { low: 0.05, high: 0.12 };
+
+        const amountEl = document.getElementById('amount');
+        const riskEl = document.getElementById('risk');
+        const calcBtn = document.getElementById('calcBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const contributionEl = document.getElementById('contribution');
+        const frequencyEl = document.getElementById('frequency');
+        const amountError = document.getElementById('amountError');
+
+        const roiLabel = document.getElementById('roiLabel');
+        const monthlyProfit = document.getElementById('monthlyProfit');
+        const futureValueSelected = document.getElementById('futureValueSelected');
+        const expectedProfitEl = document.getElementById('expectedProfit');
+
+        const lowInv = document.getElementById('lowInv');
+        const lowProfit = document.getElementById('lowProfit');
+        const low12m = document.getElementById('low12m');
+
+        const highInv = document.getElementById('highInv');
+        const highProfit = document.getElementById('highProfit');
+        const high12m = document.getElementById('high12m');
+
+        function fmtUSD(n) {
+          return n.toLocaleString(undefined, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 });
+        }
+
+        function clamp(n, min, max) { return Math.min(Math.max(n, min), max); }
+
+        function validateAmount() {
+          const raw = Number(amountEl.value || 0);
+          if (isNaN(raw) || raw < MIN || raw > MAX) {
+            amountError.classList.remove('hidden');
+            return null;
+          }
+          amountError.classList.add('hidden');
+          return raw;
+        }
+
+        function validateContribution() {
+          const raw = Number(contributionEl.value || 0);
+          if (isNaN(raw) || raw < 0) {
+            return 0;
+          }
+          return raw;
+        }
+
+        function compound(amount, monthlyRate, months) {
+          return amount * Math.pow(1 + monthlyRate, months);
+        }
+
+        // Future value with contributions; annuityDue=true means contributions at the START of each period
+        function fvWithContrib(principal, ratePerPeriod, periods, contribPerPeriod, annuityDue = false) {
+          if (ratePerPeriod === 0) return principal + contribPerPeriod * periods;
+          const growth = Math.pow(1 + ratePerPeriod, periods);
+          const annuityFactor = ((growth - 1) / ratePerPeriod) * (annuityDue ? (1 + ratePerPeriod) : 1);
+          return principal * growth + contribPerPeriod * annuityFactor;
+        }
+
+        function monthlyToWeeklyRate(monthlyRate) {
+          const weeksPerMonth = 4.34524; // average
+          return Math.pow(1 + monthlyRate, 1 / weeksPerMonth) - 1;
+        }
+
+        function updateUI() {
+          const amountRaw = Number(amountEl.value || 0);
+          const amount = clamp(amountRaw, MIN, MAX);
+          if (amount !== amountRaw) amountEl.value = amount;
+
+          const rate = riskEl.value === 'high' ? ROI.high : ROI.low;
+          const contrib = validateContribution();
+          const freq = frequencyEl.value; // 'monthly' | 'weekly'
+
+          // Effective monthly rates considering frequency
+          const weeksPerMonth = 4.34524;
+          let effMonthlyLow = ROI.low;
+          let effMonthlyHigh = ROI.high;
+          if (freq === 'weekly') {
+            const rwLow = monthlyToWeeklyRate(ROI.low);
+            const rwHigh = monthlyToWeeklyRate(ROI.high);
+            effMonthlyLow = Math.pow(1 + rwLow, weeksPerMonth) - 1;
+            effMonthlyHigh = Math.pow(1 + rwHigh, weeksPerMonth) - 1;
+          }
+
+          const effMonthlySelected = (riskEl.value === 'high') ? effMonthlyHigh : effMonthlyLow;
+          // Include contribution effect in monthly profit as if added at the START of the period (annuity due)
+          const monthly = amount * effMonthlySelected + contrib * effMonthlySelected;
+
+          roiLabel.textContent = `${(rate * 100).toFixed(0)}%`;
+          monthlyProfit.textContent = fmtUSD(monthly);
+
+          // Table and chart monthly profit values (both risks), including contributions
+          const lowMonthly = amount * effMonthlyLow + contrib * effMonthlyLow;
+          const highMonthly = amount * effMonthlyHigh + contrib * effMonthlyHigh;
+
+          let periods, lowRatePerPeriod, highRatePerPeriod, contribPerPeriod, selectedRatePerPeriod;
+          if (freq === 'weekly') {
+            periods = 52; // ~52 weeks in 12 months
+            lowRatePerPeriod = monthlyToWeeklyRate(ROI.low);
+            highRatePerPeriod = monthlyToWeeklyRate(ROI.high);
+            // Distribute a monthly contribution across weeks
+            contribPerPeriod = contrib / 4.34524;
+            selectedRatePerPeriod = riskEl.value === 'high' ? highRatePerPeriod : lowRatePerPeriod;
+          } else {
+            periods = 12; // 12 months
+            lowRatePerPeriod = ROI.low;
+            highRatePerPeriod = ROI.high;
+            contribPerPeriod = contrib;
+            selectedRatePerPeriod = riskEl.value === 'high' ? highRatePerPeriod : lowRatePerPeriod;
+          }
+
+          const lowFuture = fvWithContrib(amount, lowRatePerPeriod, periods, contribPerPeriod, true);
+          const highFuture = fvWithContrib(amount, highRatePerPeriod, periods, contribPerPeriod, true);
+
+          lowInv.textContent = fmtUSD(amount);
+          lowProfit.textContent = fmtUSD(lowMonthly);
+          low12m.textContent = fmtUSD(lowFuture);
+
+          highInv.textContent = fmtUSD(amount);
+          highProfit.textContent = fmtUSD(highMonthly);
+          high12m.textContent = fmtUSD(highFuture);
+
+          // Update chart
+          profitChart.data.datasets[0].data = [lowMonthly, highMonthly];
+          profitChart.update();
+
+          // Selected profile 12-month projection summary and expected profit
+          const selectedFuture = fvWithContrib(amount, selectedRatePerPeriod, periods, contribPerPeriod, true);
+          const totalContrib = contribPerPeriod * periods;
+          const expectedProfit = selectedFuture - (amount + totalContrib);
+          futureValueSelected.textContent = fmtUSD(selectedFuture);
+          expectedProfitEl.textContent = fmtUSD(expectedProfit);
+        }
+
+        // Chart.js setup
+        const ctx = document.getElementById('profitChart');
+        const profitChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: ['Low Risk (5%)', 'High Risk (12%)'],
+            datasets: [{
+              label: 'Monthly Profit (USD)',
+              data: [25, 60],
+              backgroundColor: ['#60a5fa55', '#f8717155'],
+              borderColor: ['#60a5fa', '#f87171'],
+              borderWidth: 1.5,
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              y: {
+                beginAtZero: true,
+                ticks: { color: '#475569' },
+                grid: { color: 'rgba(148,163,184,0.2)' },
+              },
+              x: {
+                ticks: { color: '#475569' },
+                grid: { color: 'rgba(148,163,184,0.15)' },
+              },
+            },
+            plugins: {
+              legend: { labels: { color: '#111827' } },
+              tooltip: {
+                callbacks: {
+                  label: (ctx) => ` ${fmtUSD(ctx.parsed.y)}`,
+                }
+              }
+            }
+          }
+        });
+
+        calcBtn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const valid = validateAmount();
+          if (valid === null) return;
+          updateUI();
+        });
+
+        resetBtn.addEventListener('click', () => {
+          amountEl.value = '500';
+          riskEl.value = 'low';
+          contributionEl.value = '0';
+          frequencyEl.value = 'monthly';
+          amountError.classList.add('hidden');
+          updateUI();
+        });
+
+        riskEl.addEventListener('change', updateUI);
+        amountEl.addEventListener('input', () => {
+          // live validate but don't block typing
+          const val = Number(amountEl.value || 0);
+          if (isNaN(val) || val < MIN || val > MAX) amountError.classList.remove('hidden');
+          else amountError.classList.add('hidden');
+        });
+
+        // Initial UI
+        updateUI();
+      })();
+    </script>
+<script src="page-transitions.js"></script>
+  </body>
+  </html>
