@@ -422,107 +422,121 @@
  <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-  // --- Supabase client ---
+  // ---- Supabase client ----
   const SUPABASE_URL = 'https://mxbzzkwryfifpzaotrhl.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14Ynp6a3dyeWZpZnB6YW90cmhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NjQ4MzEsImV4cCI6MjA3ODU0MDgzMX0.ot10C7-pxlkoizmk5bhc2Oe_zyJ4PoGWdTrS7P8Xm9I';
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // --- Tiny loader gate while we decide auth ---
+  // ---- Loader gate ----
   const gate = document.createElement('div');
-  gate.style.cssText = 'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.8);backdrop-filter:blur(3px);z-index:9999;font:600 16px/1.2 Inter,system-ui;color:#111;';
-  gate.textContent = 'Loading your dashboard…';
+  gate.style.cssText =
+    'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.85);backdrop-filter:blur(3px);z-index:9999;font:600 16px/1.2 Inter,system-ui;color:#111;text-align:center;padding:16px';
+  gate.innerHTML = 'Loading your dashboard…';
   document.body.appendChild(gate);
 
-  // --- Feather icons init (safe to call multiple times) ---
-  document.addEventListener('DOMContentLoaded', () => { if (window.feather) feather.replace(); });
+  // ---- Helpers ----
+  const $ = (s) => document.querySelector(s);
+  const fmtUSD = (n, min=2, max=2) => '$' + Number(n||0).toLocaleString('en-US',{minimumFractionDigits:min, maximumFractionDigits:max});
+  if (window.feather) document.addEventListener('DOMContentLoaded', () => feather.replace());
 
-  // --- Globals used by render functions ---
-  let profile = null;          // Supabase profile row
-  let portfolioChart = null;   // Chart.js instance
+  // ---- State ----
+  let profile = null;
+  let portfolioChart = null;
   const LCW_API_KEY = "4d740457-16d7-483f-8c63-0e3705c4bc7c";
 
-  // --- Auth gate: wait for INITIAL_SESSION to avoid ping-pong ---
-  const { data: sub } = supabase.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-      if (!session?.user) {
-        window.location.replace('login.html');
+  // ---- Bounded auth gate ----
+  // 1) Try immediately
+  (async function gateAuth() {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (session?.user) {
+        await proceed(session);
         return;
       }
-      // We are authenticated → load profile then render
-      profile = await loadProfile(session.user.id);
-      hydrateHeader(profile);
-      startDashboard(profile);
-      gate.remove();
-      // no longer need subscription
-      sub.subscription.unsubscribe();
-    }
-  });
 
-  // Safety fallback in case INITIAL_SESSION never fires quickly
-  setTimeout(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
+      // 2) No session yet → wait briefly for a sign-in/hydration
+      const { data: sub } = supabase.auth.onAuthStateChange(async (event, sess) => {
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+          if (sess?.user) {
+            await proceed(sess);
+            sub.subscription.unsubscribe();
+          }
+        }
+      });
+
+      // 3) Hard timeout: after 2000ms, if still no session, bounce to login
+      setTimeout(async () => {
+        const { data: { session: s2 } } = await supabase.auth.getSession();
+        if (!s2?.user) {
+          window.location.replace('login.html');
+        }
+      }, 2000);
+    } catch (e) {
+      console.error('Auth gate error:', e);
+      // If something unexpected happens, go to login (no hanging)
       window.location.replace('login.html');
     }
-  }, 2000);
+  })();
 
-  // --- Load profile from Supabase ---
-  async function loadProfile(userId) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('full_name, username, profits, btc, eth, dodge, usdt, xlm, xrp, shiba, ltc, last_login, trn_date')
-      .eq('id', userId)
-      .single();
-    if (error) {
-      console.error('Failed to load profile:', error.message);
-      return {};
+  // ---- After we know we’re authenticated ----
+  async function proceed(session) {
+    try {
+      // Load profile (don’t block UI forever if it fails)
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('full_name, username, profits, btc, eth, dodge, usdt, xlm, xrp, shiba, ltc, last_login, trn_date')
+          .eq('id', session.user.id)
+          .single();
+        if (error) console.warn('Profile load failed:', error.message);
+        profile = data || {};
+      } catch (e) {
+        console.warn('Profile exception:', e);
+        profile = {};
+      }
+
+      // Hydrate header + render UI
+      hydrateHeader(profile);
+      startDashboard(profile);
+    } finally {
+      // Always remove the gate so it never hangs
+      gate.remove();
     }
-    return data || {};
   }
 
-  // --- UI helpers ---
-  function $(sel) { return document.querySelector(sel); }
-  function fmtUSD(n, min=2, max=2) { return '$' + Number(n||0).toLocaleString('en-US',{minimumFractionDigits:min, maximumFractionDigits:max}); }
-
-  // --- Header hydrate ---
   function hydrateHeader(p) {
-    const welcomeText = $('#welcomeText');
     const first = (p?.full_name || '').split(' ')[0] || 'Investor';
+    const welcomeText = $('#welcomeText');
     if (welcomeText) welcomeText.textContent = `Welcome back, ${first}`;
   }
 
-  // --- Build asset list from profile balances ---
   function buildAssetsFromProfile(p) {
     return [
-      { symbol:'BTC', name:'Bitcoin',  type:'Crypto', quantity: Number(p?.btc||0),   price:0, change:0 },
-      { symbol:'ETH', name:'Ethereum', type:'Crypto', quantity: Number(p?.eth||0),   price:0, change:0 },
-      { symbol:'DOGE',name:'Dogecoin', type:'Crypto', quantity: Number(p?.dodge||0), price:0, change:0 },
-      { symbol:'USDT',name:'Tether',   type:'Crypto', quantity: Number(p?.usdt||0),  price:0, change:0 },
-      { symbol:'XLM', name:'Stellar',  type:'Crypto', quantity: Number(p?.xlm||0),   price:0, change:0 },
-      { symbol:'XRP', name:'XRP',      type:'Crypto', quantity: Number(p?.xrp||0),   price:0, change:0 },
-      { symbol:'SHIB',name:'Shiba',    type:'Crypto', quantity: Number(p?.shiba||0), price:0, change:0 },
-      { symbol:'LTC', name:'Litecoin', type:'Crypto', quantity: Number(p?.ltc||0),   price:0, change:0 },
+      { symbol:'BTC', name:'Bitcoin',  type:'Crypto', quantity:Number(p?.btc||0),   price:0, change:0 },
+      { symbol:'ETH', name:'Ethereum', type:'Crypto', quantity:Number(p?.eth||0),   price:0, change:0 },
+      { symbol:'DOGE',name:'Dogecoin', type:'Crypto', quantity:Number(p?.dodge||0), price:0, change:0 },
+      { symbol:'USDT',name:'Tether',   type:'Crypto', quantity:Number(p?.usdt||0),  price:0, change:0 },
+      { symbol:'XLM', name:'Stellar',  type:'Crypto', quantity:Number(p?.xlm||0),   price:0, change:0 },
+      { symbol:'XRP', name:'XRP',      type:'Crypto', quantity:Number(p?.xrp||0),   price:0, change:0 },
+      { symbol:'SHIB',name:'Shiba',    type:'Crypto', quantity:Number(p?.shiba||0), price:0, change:0 },
+      { symbol:'LTC', name:'Litecoin', type:'Crypto', quantity:Number(p?.ltc||0),   price:0, change:0 },
     ];
   }
 
-  // --- Kick off dashboard rendering ---
   function startDashboard(p) {
-    // quick actions: logout handler
+    // logout binds to Supabase signOut
     window.logout = async function () {
       await supabase.auth.signOut();
       window.location.replace('login.html');
     };
-
-    // mobile menu toggle
+    // mobile menu
     window.toggleMobileMenu = function () {
-      const menu = document.querySelector('.navbar-menu');
-      menu.classList.toggle('active');
+      document.querySelector('.navbar-menu')?.classList.toggle('active');
     };
-
-    // initial feather refresh
     if (window.feather) feather.replace();
 
-    // Recent activity (uses profile timestamps if available)
+    // recent activity
     const activityList = $('#recentActivity');
     if (activityList) {
       activityList.innerHTML = `
@@ -549,12 +563,13 @@
       if (window.feather) feather.replace();
     }
 
-    // balances
+    // balances + assets
     const balanceEl = $('#balance');
     const totalPortfolioEl = $('#totalPortfolio');
     const totalInvestmentsEl = $('#totalInvestments');
     const totalReturnEl = $('#totalReturn');
     const assetCountEl = $('#assetCount');
+    let portfolioChart = null;
 
     const assets = buildAssetsFromProfile(p);
 
@@ -566,117 +581,99 @@
           body: JSON.stringify({
             currency: "USD",
             codes: assets.map(a => a.symbol),
-            sort: "rank",
-            order: "ascending",
-            offset: 0,
-            limit: assets.length,
-            meta: true
+            sort: "rank", order: "ascending", offset: 0, limit: assets.length, meta: true
           })
         });
         const data = await res.json();
         data.forEach(coin => {
-          const asset = assets.find(a => a.symbol === coin.code);
-          if (asset) {
-            asset.price = coin.rate || 0;
-            asset.change = (coin.delta && coin.delta.day) ? coin.delta.day * 100 : 0;
-          }
+          const a = assets.find(x => x.symbol === coin.code);
+          if (a) { a.price = coin.rate || 0; a.change = (coin.delta?.day ?? 0) * 100; }
         });
-        renderDashboard();
+        render();
       } catch (e) {
-        console.error('Failed to fetch prices', e);
-        renderDashboard(); // render with zeros so UI still loads
+        console.warn('Price fetch failed:', e);
+        render(); // still render with zeros
       }
     }
 
-    function renderDashboard() {
-      // balance (profits) stored in profile.profits
+    function render() {
       const balance = Number(p?.profits || 0);
       if (balanceEl) balanceEl.textContent = fmtUSD(balance);
 
       const tbody = $('#assets-table');
       if (!tbody) return;
-
       tbody.innerHTML = '';
-      const activeAssets = assets.filter(a => (a.quantity || 0) > 0);
 
-      if (activeAssets.length === 0) {
+      const active = assets.filter(a => (a.quantity || 0) > 0);
+      if (active.length === 0) {
         tbody.innerHTML = `
-          <tr>
-            <td colspan="6" class="empty-state">
-              <i data-feather="pie-chart"></i>
-              <p>No holdings yet. Start investing to see your portfolio here.</p>
-            </td>
-          </tr>`;
+          <tr><td colspan="6" class="empty-state">
+            <i data-feather="pie-chart"></i>
+            <p>No holdings yet. Start investing to see your portfolio here.</p>
+          </td></tr>`;
         if (window.feather) feather.replace();
-        updatePortfolioStats(0, balance);
-        updatePortfolioChart([]);
+        updateStats(0, balance);
+        updateChart([]);
         if (assetCountEl) assetCountEl.textContent = '0 assets';
         return;
       }
 
-      let totalPortfolioValue = 0;
-      activeAssets.forEach(asset => {
-        const totalValue = asset.quantity * asset.price;
-        totalPortfolioValue += totalValue;
-        const changeClass = asset.change >= 0 ? 'positive' : 'negative';
-        const changeIcon = asset.change >= 0 ? 'arrow-up' : 'arrow-down';
-
-        const row = `
+      let totalVal = 0;
+      active.forEach(a => {
+        const val = a.quantity * a.price;
+        totalVal += val;
+        const changeClass = a.change >= 0 ? 'positive' : 'negative';
+        const changeIcon = a.change >= 0 ? 'arrow-up' : 'arrow-down';
+        tbody.insertAdjacentHTML('beforeend', `
           <tr>
             <td>
               <div style="display:flex;align-items:center;">
-                <div class="asset-icon">${asset.symbol.charAt(0)}</div>
+                <div class="asset-icon">${a.symbol[0]}</div>
                 <div>
-                  <div style="font-weight:600;color:var(--text-dark);">${asset.name}</div>
-                  <div style="font-size:.8rem;color:var(--text-gray);">${asset.symbol}</div>
+                  <div style="font-weight:600;color:var(--text-dark);">${a.name}</div>
+                  <div style="font-size:.8rem;color:var(--text-gray);">${a.symbol}</div>
                 </div>
               </div>
             </td>
-            <td><span style="padding:4px 8px;background:#f1f5f9;border-radius:6px;font-size:.8rem;">${asset.type}</span></td>
-            <td style="font-weight:600;">${Number(asset.quantity).toLocaleString('en-US',{maximumFractionDigits:8})}</td>
-            <td>${fmtUSD(asset.price,2,4)}</td>
-            <td style="font-weight:600;">${fmtUSD(totalValue)}</td>
+            <td><span style="padding:4px 8px;background:#f1f5f9;border-radius:6px;font-size:.8rem;">${a.type}</span></td>
+            <td style="font-weight:600;">${Number(a.quantity).toLocaleString('en-US',{maximumFractionDigits:8})}</td>
+            <td>${fmtUSD(a.price,2,4)}</td>
+            <td style="font-weight:600;">${fmtUSD(val)}</td>
             <td class="${changeClass}">
               <div style="display:flex;align-items:center;gap:4px;">
-                <i data-feather="${changeIcon}" style="width:14px;height:14px;"></i>
-                ${Math.abs(asset.change).toFixed(2)}%
+                <i data-feather="${changeIcon}" style="width:14px;height:14px;"></i>${Math.abs(a.change).toFixed(2)}%
               </div>
             </td>
-          </tr>`;
-        tbody.insertAdjacentHTML('beforeend', row);
+          </tr>
+        `);
       });
 
       if (window.feather) feather.replace();
-      if (assetCountEl) assetCountEl.textContent = `${activeAssets.length} asset${activeAssets.length!==1?'s':''}`;
-
-      updatePortfolioStats(totalPortfolioValue, balance);
-      updatePortfolioChart(activeAssets);
+      if (assetCountEl) assetCountEl.textContent = `${active.length} asset${active.length!==1?'s':''}`;
+      updateStats(totalVal, balance);
+      updateChart(active);
     }
 
-    function updatePortfolioStats(totalInvestments, balance) {
+    function updateStats(totalInvestments, balance) {
       const totalPortfolio = totalInvestments + balance;
-      const base = 1000; // demo baseline
-      const totalReturnPct = totalInvestments > 0 ? ((totalPortfolio - base) / base * 100) : 0;
+      const base = 1000;
+      const pct = totalInvestments > 0 ? ((totalPortfolio - base)/base*100) : 0;
 
-      if (totalPortfolioEl) totalPortfolioEl.textContent   = fmtUSD(totalPortfolio);
-      if (totalInvestmentsEl) totalInvestmentsEl.textContent = fmtUSD(totalInvestments);
-      if (totalReturnEl) totalReturnEl.textContent = `${totalReturnPct >= 0 ? '+' : ''}${totalReturnPct.toFixed(2)}%`;
+      $('#totalPortfolio').textContent = fmtUSD(totalPortfolio);
+      $('#totalInvestments').textContent = fmtUSD(totalInvestments);
+      $('#totalReturn').textContent = `${pct>=0?'+':''}${pct.toFixed(2)}%`;
 
-      // flip badge color if negative
-      const changeWrap = totalReturnEl?.parentElement?.querySelector('.stat-change');
-      if (changeWrap) {
-        changeWrap.classList.toggle('positive', totalReturnPct >= 0);
-        changeWrap.classList.toggle('negative', totalReturnPct < 0);
-      }
+      const wrap = $('#totalReturn')?.parentElement?.querySelector('.stat-change');
+      if (wrap) { wrap.classList.toggle('positive', pct>=0); wrap.classList.toggle('negative', pct<0); }
     }
 
-    function updatePortfolioChart(activeAssets) {
+    function updateChart(active) {
       const ctx = document.getElementById('portfolioChart');
       if (!ctx) return;
-      if (activeAssets.length === 0) { if (portfolioChart) portfolioChart.destroy(); return; }
+      if (!active.length) { if (portfolioChart) portfolioChart.destroy(); return; }
 
-      const labels = activeAssets.map(a => a.symbol);
-      const values = activeAssets.map(a => a.quantity * a.price);
+      const labels = active.map(a => a.symbol);
+      const values = active.map(a => a.quantity * a.price);
       const colors = ['#4f46e5','#10b981','#f59e0b','#3b82f6','#ef4444','#8b5cf6','#ec4899'];
 
       if (portfolioChart) {
@@ -689,31 +686,19 @@
           type: 'doughnut',
           data: { labels, datasets: [{ data: values, backgroundColor: colors.slice(0, labels.length), borderWidth: 0 }] },
           options: {
-            responsive: true, maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: (c) => {
-                    const label = c.label || '';
-                    const value = c.parsed || 0;
-                    const total = c.dataset.data.reduce((a,b)=>a+b,0);
-                    const pct = total ? ((value/total)*100).toFixed(1) : '0.0';
-                    return `${label}: ${fmtUSD(value)} (${pct}%)`;
-                  }
-                }
-              }
-            }
+            responsive:true, maintainAspectRatio:false,
+            plugins:{ legend:{display:false} }
           }
         });
       }
     }
 
-    // initial and interval refreshes
+    // initial + interval refresh
     fetchLivePrices();
     setInterval(fetchLivePrices, 60000);
   }
 </script>
+
 
 <script src="page-transitions.js"></script>
 </body>
