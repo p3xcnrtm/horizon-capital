@@ -63,7 +63,7 @@
       
       <h2 style="text-align: center; margin-bottom: 1.5rem; color: var(--primary-color); font-size: 1.75rem;">Login to Horizon</h2>
       
-      <form id="loginForm" onsubmit="handleLogin(event); return false;">
+      <form id="loginForm"> 
         <div class="form-group">
           <label for="email" class="form-label">Email</label>
           <input id="email" type="email" class="form-input" name="email" required placeholder="you@example.com">
@@ -92,37 +92,34 @@
 <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-  // 🔧 Fill these from Supabase → Project Settings → API
-  const SUPABASE_URL = 'https://mxbzzkwryfifpzaotrhl.supabase.co';   // <-- replace
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14Ynp6a3dyeWZpZnB6YW90cmhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NjQ4MzEsImV4cCI6MjA3ODU0MDgzMX0.ot10C7-pxlkoizmk5bhc2Oe_zyJ4PoGWdTrS7P8Xm9I
-';              // <-- replace
+  // 🔧 Your real values here (single line each)
+  const SUPABASE_URL = 'https://mxbzzkwryfifpzaotrhl.supabase.co';
+  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14Ynp6a3dyeWZpZnB6YW90cmhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NjQ4MzEsImV4cCI6MjA3ODU0MDgzMX0.ot10C7-pxlkoizmk5bhc2Oe_zyJ4PoGWdTrS7P8Xm9I';
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // Utilities
   const $ = (sel) => document.querySelector(sel);
   const show = (el) => (el.style.display = 'block');
   const hide = (el) => (el.style.display = 'none');
 
-  // Keep your existing menu + libraries init
   window.toggleMobileMenu = function () {
     const menu = document.querySelector('.navbar-menu');
     menu.classList.toggle('active');
   };
 
-  // On load: if session exists, go to dashboard
   document.addEventListener('DOMContentLoaded', async () => {
-    // Init any libs you already used
     if (window.AOS) AOS.init();
     if (window.feather) feather.replace();
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      window.location.href = 'dashboard.html';
-      return;
-    }
+    // If already logged in → go
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        window.location.assign('dashboard.html');
+        return;
+      }
+    } catch (_) {}
 
-    // Wire up form
     const form = $('#loginForm');
     const errorAlert = $('#errorAlert');
     const emailInput = $('#email');
@@ -146,55 +143,39 @@
 
       let valid = true;
       const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-      if (!emailPattern.test(email)) {
-        emailError.classList.remove('hidden');
-        valid = false;
-      }
-      if (!password) {
-        passwordError.classList.remove('hidden');
-        valid = false;
-      }
+      if (!emailPattern.test(email)) { emailError.classList.remove('hidden'); valid = false; }
+      if (!password) { passwordError.classList.remove('hidden'); valid = false; }
       if (!valid) return;
 
-      // Sign in with Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) {
+          errorAlert.textContent = error.message || 'Invalid email or password. Please try again.';
+          show(errorAlert);
+          return;
+        }
 
-      if (error) {
-        // Common cases:
-        // - Invalid login credentials
-        // - Email not confirmed
-        // - Rate limiting
-        errorAlert.textContent = error.message || 'Invalid email or password. Please try again.';
+        // Redirect (with fallback)
+        try {
+          window.location.href = 'dashboard.html';
+          setTimeout(() => window.location.assign('dashboard.html'), 150); // fallback
+        } catch {
+          window.location.assign('dashboard.html');
+        }
+      } catch (err) {
+        errorAlert.textContent = err?.message || 'Unexpected error. Try again.';
         show(errorAlert);
-        return;
       }
-
-      // Optional: fetch profile for quick greeting on dashboard
-      // (Requires the `profiles` table from earlier step)
-      // try {
-      //   const { data: profile } = await supabase
-      //     .from('profiles')
-      //     .select('full_name,username')
-      //     .eq('id', data.user.id)
-      //     .single();
-      //   if (profile) sessionStorage.setItem('profile', JSON.stringify(profile));
-      // } catch (_) {}
-
-      window.location.href = 'dashboard.html';
     });
 
-    // Forgot password (optional)
+    // Forgot password
     if (forgotLink) {
       forgotLink.addEventListener('click', async (e) => {
         e.preventDefault();
         resetErrors();
         const email = emailInput.value.trim();
-        if (!email) {
-          emailError.classList.remove('hidden');
-          return;
-        }
-        // Make sure Auth → URL Configuration has your site URL + a reset page (or reuse login)
+        if (!email) { emailError.classList.remove('hidden'); return; }
+
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: window.location.origin + '/reset-password.html'
         });
@@ -211,6 +192,7 @@
     }
   });
 </script>
+
 
 
 <script src="page-transitions.js"></script>
