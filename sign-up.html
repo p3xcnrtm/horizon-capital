@@ -134,26 +134,22 @@
     </div>
   </div>
 
- <script type="module">
+<script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-  // 1) Supabase client
-  const SUPABASE_URL = 'https://mxbzzkwryfifpzaotrhl.supabase.co';   // <-- replace
-  const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14Ynp6a3dyeWZpZnB6YW90cmhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NjQ4MzEsImV4cCI6MjA3ODU0MDgzMX0.ot10C7-pxlkoizmk5bhc2Oe_zyJ4PoGWdTrS7P8Xm9I';              // <-- replace
+  const SUPABASE_URL = 'https://YOUR_PROJECT_REF.supabase.co';    // <-- replace
+  const SUPABASE_ANON_KEY = 'YOUR_ANON_PUBLIC_KEY';               // <-- replace
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // 2) UI helpers
-  function show(el) { el.style.display = 'block'; }
-  function hide(el) { el.style.display = 'none'; }
+  // helpers
+  const show = (el) => (el.style.display = 'block');
+  const hide = (el) => (el.style.display = 'none');
 
-  // 3) Mobile menu
   window.toggleMobileMenu = function () {
-    const menu = document.querySelector('.navbar-menu');
-    menu.classList.toggle('active');
+    document.querySelector('.navbar-menu').classList.toggle('active');
   };
 
-  document.addEventListener('DOMContentLoaded', async () => {
-    // Icons
+  document.addEventListener('DOMContentLoaded', () => {
     if (window.feather) feather.replace();
 
     const form = document.getElementById('signupForm');
@@ -177,7 +173,6 @@
       emailErr.textContent = 'Please enter a valid email.';
     }
 
-    // 4) Validate + Supabase Auth sign-up
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       resetErrors();
@@ -188,105 +183,64 @@
       const password = passwordEl.value;
 
       let valid = true;
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
       if (full_name.length < 2) { show(nameErr); valid = false; }
       if (username.length < 2) { show(usernameErr); valid = false; }
-
-      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailPattern.test(email)) { show(emailErr); valid = false; }
-
       if (password.length < 6) { show(passwordErr); valid = false; }
       if (!agreeEl.checked) { agreeEl.focus(); valid = false; }
 
       if (!valid) return;
 
-      // 4a) Check username uniqueness
-      const { data: existing, error: unameErr } = await supabase
-        .from('profiles')
-        .select('id')
-        .eq('username', username)
-        .maybeSingle();
+      // Username availability (via RPC; no table read exposure)
+      const { data: available, error: unameErr } = await supabase
+        .rpc('is_username_available', { u: username });
 
       if (unameErr) {
         usernameErr.textContent = 'Could not verify username uniqueness. Try again.';
         show(usernameErr);
         return;
       }
-      if (existing) {
+      if (!available) {
         usernameErr.textContent = 'Username already exists. Please choose another.';
         show(usernameErr);
         return;
       }
 
-      // 4b) Sign up with Supabase Auth
-      // Never store or transmit passwords yourself — let Supabase handle it.
+      // Sign up (send metadata for trigger)
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          // These appear on the user’s auth record (optional)
           data: { full_name, username }
         }
       });
 
       if (signUpError) {
-        // Common: email already registered, weak password, etc.
         emailErr.textContent = signUpError.message || 'Sign up failed.';
         show(emailErr);
         return;
       }
 
-      const user = signUpData.user;
-      if (!user) {
-        emailErr.textContent = 'Sign up succeeded but no user returned. Check email confirmation.';
-        show(emailErr);
+      // If email confirmation is ON, there will be no session yet
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        // No session yet → show confirm email message (profile will be auto-created by trigger)
+        successBox.textContent = 'Sign up successful! Please check your email to confirm your account.';
+        show(successBox);
+        form.reset();
         return;
       }
 
-      // 4c) Create profile row (id must equal auth user id)
-      const profilePayload = {
-        id: user.id,
-        full_name,
-        username,
-        email,
-        profits: 1000,
-        btc: 0,
-        eth: 0,
-        dodge: 0,
-        usdt: 0,
-        xlm: 0,
-        xrp: 0,
-        shiba: 0,
-        ltc: 0,
-        last_login: new Date().toISOString(),
-        last_updated: null
-      };
-
-      const { error: profileErr } = await supabase
-        .from('profiles')
-        .upsert(profilePayload, { onConflict: 'id' });
-
-      if (profileErr) {
-        emailErr.textContent = 'Account created, but profile save failed: ' + profileErr.message;
-        show(emailErr);
-        return;
-      }
-
-      // 4d) Success UI + redirect
+      // If confirmations are OFF and we do have a session → redirect now.
       successBox.textContent = 'Registration successful! Redirecting to dashboard...';
       show(successBox);
-
-      // If email confirmation is ON, you might want to show:
-      // successBox.textContent = 'Check your inbox to confirm your email, then log in.';
-
-      setTimeout(() => {
-        window.location.href = 'dashboard.html';
-      }, 1000);
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 1000);
     });
   });
 </script>
-
-<!-- keep this after the module script -->
-<script src="page-transitions.js"></script>
 
 <script src="page-transitions.js"></script>
 </body>
