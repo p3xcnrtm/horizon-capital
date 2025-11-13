@@ -235,6 +235,126 @@
       margin-bottom: 16px;
       opacity: 0.3;
     }
+    .modal {
+      position: fixed;
+      z-index: 10000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-content {
+      background-color: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      animation: modalSlideIn 0.3s ease;
+    }
+    @keyframes modalSlideIn {
+      from { transform: translateY(-50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 24px;
+      border-bottom: 2px solid #f1f5f9;
+    }
+    .modal-header h2 {
+      margin: 0;
+      font-size: 1.5rem;
+      color: var(--text-dark);
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 2rem;
+      color: var(--text-gray);
+      cursor: pointer;
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .modal-close:hover {
+      background: #f1f5f9;
+      color: var(--text-dark);
+    }
+    .modal-body {
+      padding: 24px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 600;
+      color: var(--text-dark);
+      font-size: 0.875rem;
+    }
+    .form-group select,
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.2s;
+    }
+    .form-group select:focus,
+    .form-group input:focus {
+      outline: none;
+      border-color: #4f46e5;
+    }
+    .form-group small {
+      display: block;
+      margin-top: 6px;
+      color: var(--text-gray);
+      font-size: 0.8rem;
+    }
+    .modal-footer {
+      padding: 24px;
+      border-top: 2px solid #f1f5f9;
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+    }
+    .btn-primary, .btn-secondary {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 0.9rem;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    .btn-secondary {
+      background: #f1f5f9;
+      color: var(--text-dark);
+    }
+    .btn-secondary:hover {
+      background: #e2e8f0;
+    }
     @media (max-width: 968px) {
       .main-content {
         grid-template-columns: 1fr;
@@ -320,12 +440,12 @@
       <div class="stat-card info">
         <div class="stat-label">
           <i data-feather="bar-chart-2" style="width: 16px; height: 16px;"></i>
-          Total Return
+          Real-Time Profit
         </div>
-        <div class="stat-value" id="totalReturn">+0.00%</div>
-        <div class="stat-change positive">
+        <div class="stat-value" id="totalReturn">+$0.00</div>
+        <div class="stat-change positive" id="profitChange">
           <i data-feather="arrow-up" style="width: 14px; height: 14px;"></i>
-          <span>All time</span>
+          <span>From portfolio</span>
         </div>
       </div>
     </div>
@@ -357,7 +477,13 @@
       <div class="card">
         <div class="card-header">
           <h3 class="card-title">Portfolio Holdings</h3>
-          <span style="color: var(--text-gray); font-size: 0.875rem;" id="assetCount">0 assets</span>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <span style="color: var(--text-gray); font-size: 0.875rem;" id="assetCount">0 assets</span>
+            <button onclick="openHoldingsModal()" class="action-btn invest" style="padding: 8px 16px; font-size: 0.875rem;">
+              <i data-feather="plus-circle" style="width: 16px; height: 16px;"></i>
+              Add Holdings
+            </button>
+          </div>
         </div>
         <div class="table-wrapper">
           <table>
@@ -418,6 +544,43 @@
     </div>
   </div>
 
+  <!-- Holdings Modal -->
+  <div id="holdingsModal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add/Edit Portfolio Holdings</h2>
+        <button onclick="closeHoldingsModal()" class="modal-close">&times;</button>
+      </div>
+      <form id="holdingsForm" onsubmit="handleHoldingsSubmit(event)">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="assetSelect">Select Asset</label>
+            <select id="assetSelect" name="asset" required>
+              <option value="">Choose an asset</option>
+              <option value="btc">Bitcoin (BTC)</option>
+              <option value="eth">Ethereum (ETH)</option>
+              <option value="dodge">Dogecoin (DOGE)</option>
+              <option value="usdt">Tether (USDT)</option>
+              <option value="xlm">Stellar (XLM)</option>
+              <option value="xrp">XRP</option>
+              <option value="shiba">Shiba Inu (SHIB)</option>
+              <option value="ltc">Litecoin (LTC)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="quantityInput">Quantity</label>
+            <input type="number" id="quantityInput" name="quantity" step="0.00000001" min="0" placeholder="0.00000000" required>
+            <small>Enter the quantity of the asset you own</small>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" onclick="closeHoldingsModal()" class="btn-secondary">Cancel</button>
+          <button type="submit" class="btn-primary">Save Holdings</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   
  <script type="module">
   import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
@@ -442,6 +605,8 @@
   // ---- State ----
   let profile = null;
   let portfolioChart = null;
+  let currentAssets = [];
+  let currentRender = null;
   const LCW_API_KEY = "4d740457-16d7-483f-8c63-0e3705c4bc7c";
 
   // ---- Bounded auth gate ----
@@ -486,7 +651,7 @@ async function proceed(session) {
     try {
     const { data, error } = await supabase
   .from('profiles')
-  .select('full_name,username,profits,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc,last_login,trn_date')
+  .select('full_name,username,profits,available_balance,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc,last_login,trn_date')
   .eq('id', session.user.id)
   .single();
 
@@ -499,7 +664,7 @@ console.log('Profile fetched:', profile, 'error:', error?.message);
 
 const balEl = document.getElementById('balance');
 if (balEl) {
-  const raw = profile?.profits;
+  const raw = profile?.available_balance;
   const profits = (typeof raw === 'number' && Number.isFinite(raw))
     ? raw
     : (Number.parseFloat(raw ?? 0) || 0);
@@ -595,6 +760,8 @@ function hydrateHeader(p, session) {
     let portfolioChart = null;
 
     const assets = buildAssetsFromProfile(p);
+    currentAssets = assets;
+    currentRender = render;
 
     async function fetchLivePrices() {
       try {
@@ -608,20 +775,121 @@ function hydrateHeader(p, session) {
           })
         });
         const data = await res.json();
+        
+        // Get investment plan for risk-based movements
+        let investmentPlan = null;
+        try {
+          if (p?.investment_plan) {
+            investmentPlan = typeof p.investment_plan === 'string' 
+              ? JSON.parse(p.investment_plan) 
+              : p.investment_plan;
+          }
+        } catch (e) {
+          console.warn('Error parsing investment plan:', e);
+        }
+        
         data.forEach(coin => {
           const a = assets.find(x => x.symbol === coin.code);
-          if (a) { a.price = coin.rate || 0; a.change = (coin.delta?.day ?? 0) * 100; }
+          if (a) {
+            const basePrice = coin.rate || 0;
+            const baseChange = (coin.delta?.day ?? 0) * 100;
+            
+            // Apply risk-based price movements if plan is active
+            if (investmentPlan?.status === 'active') {
+              const riskMultiplier = investmentPlan.type === 'aggressive' ? 1.5 : 0.7;
+              const volatilityFactor = investmentPlan.type === 'aggressive' ? 0.15 : 0.05;
+              
+              // Add simulated volatility based on plan risk
+              const randomChange = (Math.random() - 0.5) * 2 * volatilityFactor * 100;
+              a.price = basePrice * (1 + (baseChange / 100) * riskMultiplier + randomChange / 100);
+              a.change = baseChange * riskMultiplier + randomChange;
+            } else {
+              a.price = basePrice;
+              a.change = baseChange;
+            }
+          }
         });
+        
+        // Calculate portfolio profits and update available_balance
+        await updatePortfolioProfits(assets, investmentPlan);
+        
         render();
       } catch (e) {
         console.warn('Price fetch failed:', e);
         render(); // still render with zeros
       }
     }
+    
+    // Calculate profits from portfolio and update available_balance
+    async function updatePortfolioProfits(assetsArray, plan) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) return;
+        
+        // Calculate total portfolio value
+        let totalPortfolioValue = 0;
+        assetsArray.forEach(asset => {
+          totalPortfolioValue += (asset.quantity || 0) * (asset.price || 0);
+        });
+        
+        // Get current available_balance
+        const { data: currentProfile } = await supabase
+          .from('profiles')
+          .select('available_balance')
+          .eq('id', session.user.id)
+          .single();
+        
+        const currentBalance = parseFloat(currentProfile?.available_balance || 0);
+        
+        // Calculate profit (portfolio value - initial investment)
+        // For simplicity, we'll track profit as the difference between current portfolio value and a base
+        // In a real system, you'd track initial investment amounts
+        
+        // Calculate expected return based on plan
+        let expectedReturnRate = 0;
+        if (plan?.status === 'active') {
+          if (plan.type === 'conservative') {
+            expectedReturnRate = 0.10 / 12; // ~10% annual / 12 months = monthly
+          } else if (plan.type === 'aggressive') {
+            expectedReturnRate = 0.25 / 30; // ~25% annual / 30 days = daily
+          }
+        }
+        
+        // Calculate time since plan start
+        let timeMultiplier = 1;
+        if (plan?.startDate) {
+          const startDate = new Date(plan.startDate);
+          const now = new Date();
+          const daysDiff = (now - startDate) / (1000 * 60 * 60 * 24);
+          
+          if (plan.type === 'conservative') {
+            timeMultiplier = daysDiff / 30; // Monthly compounding
+          } else {
+            timeMultiplier = daysDiff; // Daily compounding
+          }
+        }
+        
+        // Calculate profit based on portfolio performance
+        const portfolioProfit = totalPortfolioValue * expectedReturnRate * Math.max(0, timeMultiplier);
+        const newAvailableBalance = currentBalance + portfolioProfit;
+        
+        // Update available_balance in database (only if significant change to avoid too many updates)
+        if (Math.abs(newAvailableBalance - currentBalance) > 0.01) {
+          await supabase
+            .from('profiles')
+            .update({ available_balance: newAvailableBalance })
+            .eq('id', session.user.id);
+        }
+      } catch (error) {
+        console.warn('Error updating portfolio profits:', error);
+      }
+    }
 
-function render() {
+function render(profileData) {
    console.log('render() running');
-  const raw = p?.profits;
+  // Use profileData parameter if provided, otherwise fall back to p
+  const profileForRender = profileData || p;
+  const raw = profileForRender?.available_balance;
   const balance = (typeof raw === 'number' && Number.isFinite(raw))
     ? raw
     : (Number.parseFloat(raw ?? 0) || 0);
@@ -633,7 +901,9 @@ function render() {
       if (!tbody) return;
       tbody.innerHTML = '';
 
-      const active = assets.filter(a => (a.quantity || 0) > 0);
+      // Use currentAssets if available, otherwise fall back to local assets
+      const assetsToRender = currentAssets.length > 0 ? currentAssets : assets;
+      const active = assetsToRender.filter(a => (a.quantity || 0) > 0);
       if (active.length === 0) {
         tbody.innerHTML = `
           <tr><td colspan="6" class="empty-state">
@@ -685,15 +955,47 @@ function render() {
 
     function updateStats(totalInvestments, balance) {
       const totalPortfolio = totalInvestments + balance;
-      const base = 1000;
-      const pct = totalInvestments > 0 ? ((totalPortfolio - base)/base*100) : 0;
+      
+      // Calculate profit from portfolio
+      let investmentPlan = null;
+      try {
+        if (p?.investment_plan) {
+          investmentPlan = typeof p.investment_plan === 'string' 
+            ? JSON.parse(p.investment_plan) 
+            : p.investment_plan;
+        }
+      } catch (e) {
+        console.warn('Error parsing investment plan:', e);
+      }
+      
+      // Calculate profit based on portfolio value and plan
+      let profit = 0;
+      if (investmentPlan?.status === 'active' && totalInvestments > 0) {
+        const planAmount = investmentPlan.monthlyAmount || 0;
+        profit = totalInvestments - planAmount; // Profit = current value - initial investment
+      } else {
+        profit = totalInvestments; // If no plan, profit is just the portfolio value
+      }
+      
+      const profitPct = totalInvestments > 0 && investmentPlan?.monthlyAmount 
+        ? ((profit / investmentPlan.monthlyAmount) * 100) 
+        : 0;
 
       $('#totalPortfolio').textContent = fmtUSD(totalPortfolio);
       $('#totalInvestments').textContent = fmtUSD(totalInvestments);
-      $('#totalReturn').textContent = `${pct>=0?'+':''}${pct.toFixed(2)}%`;
+      $('#totalReturn').textContent = `${profit>=0?'+':''}${fmtUSD(profit).replace('$', '')}`;
 
       const wrap = $('#totalReturn')?.parentElement?.querySelector('.stat-change');
-      if (wrap) { wrap.classList.toggle('positive', pct>=0); wrap.classList.toggle('negative', pct<0); }
+      if (wrap) { 
+        wrap.classList.toggle('positive', profit>=0); 
+        wrap.classList.toggle('negative', profit<0);
+        const profitText = wrap.querySelector('span');
+        if (profitText) {
+          profitText.textContent = profitPct !== 0 
+            ? `${profitPct>=0?'+':''}${profitPct.toFixed(2)}% return`
+            : 'From portfolio';
+        }
+      }
     }
 
     function updateChart(active) {
@@ -726,10 +1028,156 @@ function render() {
     fetchLivePrices();
     setInterval(fetchLivePrices, 60000);
   }
+
+  // Holdings modal functions
+  window.openHoldingsModal = function() {
+    const modal = document.getElementById('holdingsModal');
+    if (modal) {
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      if (window.feather) feather.replace();
+    }
+  };
+
+  window.closeHoldingsModal = function() {
+    const modal = document.getElementById('holdingsModal');
+    if (modal) {
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+      const form = document.getElementById('holdingsForm');
+      if (form) form.reset();
+    }
+  };
+
+  // Close modal when clicking outside
+  window.addEventListener('click', function(event) {
+    const modal = document.getElementById('holdingsModal');
+    if (event.target === modal) {
+      closeHoldingsModal();
+    }
+  });
+
+  window.handleHoldingsSubmit = async function(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    const asset = formData.get('asset');
+    const quantity = parseFloat(formData.get('quantity'));
+
+    if (!asset || isNaN(quantity) || quantity < 0) {
+      alert('Please enter valid asset and quantity');
+      return;
+    }
+
+    try {
+      // Get current session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) {
+        alert('Please login to add holdings');
+        window.location.replace('login.html');
+        return;
+      }
+
+      // Get current profile to update
+      const { data: currentProfile, error: fetchError } = await supabase
+        .from('profiles')
+        .select('btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
+        .eq('id', session.user.id)
+        .single();
+
+      if (fetchError) {
+        console.error('Error fetching profile:', fetchError);
+        alert('Failed to load current holdings. Please try again.');
+        return;
+      }
+
+      // Prepare update object
+      const updateData = {};
+      updateData[asset] = quantity;
+
+      // Update the profile
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', session.user.id);
+
+      if (updateError) {
+        console.error('Error updating holdings:', updateError);
+        alert('Failed to save holdings. Please try again.');
+        return;
+      }
+
+      // Success - refresh the dashboard
+      alert('Holdings updated successfully!');
+      closeHoldingsModal();
+      
+      // Reload profile and refresh dashboard
+      const { data: updatedProfile } = await supabase
+        .from('profiles')
+        .select('full_name,username,profits,available_balance,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc,last_login,trn_date')
+        .eq('id', session.user.id)
+        .single();
+
+      if (updatedProfile) {
+        profile = updatedProfile;
+        // Update assets array
+        currentAssets = buildAssetsFromProfile(updatedProfile);
+        // Update the profile reference used in render
+        if (typeof window.updateProfileForRender === 'function') {
+          window.updateProfileForRender(updatedProfile);
+        }
+        // Update balance display
+        const balEl = document.getElementById('balance');
+        if (balEl) {
+          const raw = updatedProfile?.available_balance;
+          const profits = (typeof raw === 'number' && Number.isFinite(raw))
+            ? raw
+            : (Number.parseFloat(raw ?? 0) || 0);
+          balEl.textContent = fmtUSD(profits);
+        }
+        // Trigger re-render if available
+        if (currentRender) {
+          // Update the assets in the render function scope by calling fetchLivePrices
+          // which will update prices and call render
+          const priceFetch = async () => {
+            try {
+              const res = await fetch("https://api.livecoinwatch.com/coins/map", {
+                method: "POST",
+                headers: { "content-type": "application/json", "x-api-key": LCW_API_KEY },
+                body: JSON.stringify({
+                  currency: "USD",
+                  codes: currentAssets.map(a => a.symbol),
+                  sort: "rank", order: "ascending", offset: 0, limit: currentAssets.length, meta: true
+                })
+              });
+              const data = await res.json();
+              data.forEach(coin => {
+                const a = currentAssets.find(x => x.symbol === coin.code);
+                if (a) { a.price = coin.rate || 0; a.change = (coin.delta?.day ?? 0) * 100; }
+              });
+              currentRender();
+            } catch (e) {
+              console.warn('Price fetch failed:', e);
+              currentRender();
+            }
+          };
+          priceFetch();
+        } else {
+          // Fallback to page reload
+          window.location.reload();
+        }
+      }
+    } catch (error) {
+      console.error('Error saving holdings:', error);
+      alert('An error occurred while saving holdings. Please try again.');
+    }
+  };
 </script>
 
 
 <script src="page-transitions.js"></script>
 </body>
 </html>
+
+
 
