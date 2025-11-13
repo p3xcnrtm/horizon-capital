@@ -426,15 +426,15 @@
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14Ynp6a3dyeWZpZnB6YW90cmhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NjQ4MzEsImV4cCI6MjA3ODU0MDgzMX0.ot10C7-pxlkoizmk5bhc2Oe_zyJ4PoGWdTrS7P8Xm9I';
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // ---- Simple helpers ----
+  // ---- Helpers ----
   const $ = (s) => document.querySelector(s);
   const fmtUSD = (n, min = 2, max = 2) =>
     '$' + Number(n || 0).toLocaleString('en-US', {
       minimumFractionDigits: min,
-      maximumFractionDigits: max
+      maximumFractionDigits: max,
     });
 
-  // ---- Loader overlay ----
+  // Loader overlay
   const gate = document.createElement('div');
   gate.style.cssText =
     'position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.85);backdrop-filter:blur(3px);z-index:9999;font:600 16px/1.2 Inter,system-ui;color:#111;text-align:center;padding:16px';
@@ -448,13 +448,11 @@
   // ---- State ----
   let profile = null;
   let portfolioChart = null;
-  const LCW_API_KEY = '4d740457-16d7-483f-8c63-0e3705c4bc7c';
 
-  // --- Helper: read balance from profile.profits safely ---
-  function getBalanceFromProfile() {
-    const raw = profile?.profits;
+  // Safely read profits as a number
+  function getProfitsNumber(p) {
+    const raw = p?.profits;
     if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
-
     const parsed = Number.parseFloat(raw);
     return Number.isFinite(parsed) ? parsed : 0;
   }
@@ -463,7 +461,7 @@
   (async function gateAuth() {
     try {
       const {
-        data: { session }
+        data: { session },
       } = await supabase.auth.getSession();
 
       if (session?.user) {
@@ -488,7 +486,7 @@
 
       setTimeout(async () => {
         const {
-          data: { session: s2 }
+          data: { session: s2 },
         } = await supabase.auth.getSession();
         if (!s2?.user) {
           window.location.replace('login.html');
@@ -500,10 +498,10 @@
     }
   })();
 
-  // ---- After we know user is authenticated ----
+  // ---- After authentication ----
   async function proceed(session) {
     try {
-      // 1) Load profile INCLUDING profits
+      // Load profile (including profits)
       try {
         const { data, error } = await supabase
           .from('profiles')
@@ -515,29 +513,23 @@
 
         if (error) console.warn('Profile load failed:', error.message);
         profile = data || {};
-
         console.log('Profile fetched:', profile);
-
-        // 2) Immediately hydrate the Available Balance from profile.profits
-        const balanceEl = $('#balance');
-        if (balanceEl) {
-          const balance = getBalanceFromProfile();
-          balanceEl.textContent = fmtUSD(balance);
-        }
       } catch (e) {
         console.warn('Profile exception:', e);
         profile = {};
       }
 
-      // 3) Welcome header + dashboard
+      const profits = getProfitsNumber(profile);
+
       hydrateHeader(profile, session);
-      startDashboard();
+      hydrateStatsFromProfits(profits); // 🔥 All four cards from profits
+      startDashboard(profile);
     } finally {
       gate.remove();
     }
   }
 
-  // ---- Welcome text ----
+  // ---- Welcome header ----
   function hydrateHeader(p, session) {
     const welcomeText = $('#welcomeText');
     const meta = session?.user?.user_metadata || {};
@@ -552,22 +544,46 @@
     if (welcomeText) welcomeText.textContent = `Welcome back, ${name}`;
   }
 
-  // ---- Assets from profile balances ----
+  // ---- Stats from profits ----
+  function hydrateStatsFromProfits(profits) {
+    const totalPortfolioEl = $('#totalPortfolio');
+    const balanceEl = $('#balance');
+    const totalInvestmentsEl = $('#totalInvestments');
+    const totalReturnEl = $('#totalReturn');
+
+    if (totalPortfolioEl) totalPortfolioEl.textContent = fmtUSD(profits);
+    if (balanceEl) balanceEl.textContent = fmtUSD(profits);
+    if (totalInvestmentsEl) totalInvestmentsEl.textContent = fmtUSD(profits);
+
+    if (totalReturnEl) {
+      const sign = profits >= 0 ? '+' : '';
+      totalReturnEl.textContent = `${sign}${profits.toFixed(2)}%`;
+      const wrap =
+        totalReturnEl.parentElement &&
+        totalReturnEl.parentElement.querySelector('.stat-change');
+      if (wrap) {
+        wrap.classList.toggle('positive', profits >= 0);
+        wrap.classList.toggle('negative', profits < 0);
+      }
+    }
+  }
+
+  // ---- Assets from profile (still used only to show quantities) ----
   function buildAssetsFromProfile(p) {
     return [
-      { symbol: 'BTC', name: 'Bitcoin', type: 'Crypto', quantity: Number(p?.btc || 0), price: 0, change: 0 },
-      { symbol: 'ETH', name: 'Ethereum', type: 'Crypto', quantity: Number(p?.eth || 0), price: 0, change: 0 },
-      { symbol: 'DOGE', name: 'Dogecoin', type: 'Crypto', quantity: Number(p?.dodge || 0), price: 0, change: 0 },
-      { symbol: 'USDT', name: 'Tether', type: 'Crypto', quantity: Number(p?.usdt || 0), price: 0, change: 0 },
-      { symbol: 'XLM', name: 'Stellar', type: 'Crypto', quantity: Number(p?.xlm || 0), price: 0, change: 0 },
-      { symbol: 'XRP', name: 'XRP', type: 'Crypto', quantity: Number(p?.xrp || 0), price: 0, change: 0 },
-      { symbol: 'SHIB', name: 'Shiba', type: 'Crypto', quantity: Number(p?.shiba || 0), price: 0, change: 0 },
-      { symbol: 'LTC', name: 'Litecoin', type: 'Crypto', quantity: Number(p?.ltc || 0), price: 0, change: 0 }
+      { symbol: 'BTC', name: 'Bitcoin', type: 'Crypto', quantity: Number(p?.btc || 0) },
+      { symbol: 'ETH', name: 'Ethereum', type: 'Crypto', quantity: Number(p?.eth || 0) },
+      { symbol: 'DOGE', name: 'Dogecoin', type: 'Crypto', quantity: Number(p?.dodge || 0) },
+      { symbol: 'USDT', name: 'Tether', type: 'Crypto', quantity: Number(p?.usdt || 0) },
+      { symbol: 'XLM', name: 'Stellar', type: 'Crypto', quantity: Number(p?.xlm || 0) },
+      { symbol: 'XRP', name: 'XRP', type: 'Crypto', quantity: Number(p?.xrp || 0) },
+      { symbol: 'SHIB', name: 'Shiba', type: 'Crypto', quantity: Number(p?.shiba || 0) },
+      { symbol: 'LTC', name: 'Litecoin', type: 'Crypto', quantity: Number(p?.ltc || 0) },
     ];
   }
 
-  // ---- Dashboard boot ----
-  function startDashboard() {
+  // ---- Dashboard ----
+  function startDashboard(p) {
     // Logout
     window.logout = async function () {
       await supabase.auth.signOut();
@@ -592,12 +608,16 @@
             </div>
             <div class="activity-details">
               <h4>Account Created</h4>
-              <p>${profile?.trn_date ? new Date(profile.trn_date).toLocaleDateString() : 'Welcome to Horizon Capital'}</p>
+              <p>${
+                p?.trn_date
+                  ? new Date(p.trn_date).toLocaleDateString()
+                  : 'Welcome to Horizon Capital'
+              }</p>
             </div>
           </div>
         </li>
         ${
-          profile?.last_login
+          p?.last_login
             ? `
         <li class="activity-item">
           <div class="activity-info">
@@ -606,9 +626,9 @@
             </div>
             <div class="activity-details">
               <h4>Last Login</h4>
-              <p>${new Date(profile.last_login).toLocaleDateString()} at ${new Date(
-                  profile.last_login
-                ).toLocaleTimeString()}</p>
+              <p>${new Date(p.last_login).toLocaleDateString()} at ${new Date(
+                p.last_login
+              ).toLocaleTimeString()}</p>
             </div>
           </div>
         </li>`
@@ -618,195 +638,91 @@
       if (window.feather) feather.replace();
     }
 
-    // Stats + table elements
+    // Assets table (no live price API, price/value shown as 0)
     const assetCountEl = $('#assetCount');
-    const assets = buildAssetsFromProfile(profile);
+    const assets = buildAssetsFromProfile(p);
+    renderAssets(assets, assetCountEl);
+    updateChart([]); // no distribution data without live prices
+  }
 
-    async function fetchLivePrices() {
-      try {
-        const res = await fetch('https://api.livecoinwatch.com/coins/map', {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-            'x-api-key': LCW_API_KEY
-          },
-          body: JSON.stringify({
-            currency: 'USD',
-            codes: assets.map((a) => a.symbol),
-            sort: 'rank',
-            order: 'ascending',
-            offset: 0,
-            limit: assets.length,
-            meta: true
-          })
-        });
+  function renderAssets(assets, assetCountEl) {
+    const tbody = $('#assets-table');
+    if (!tbody) return;
+    tbody.innerHTML = '';
 
-        const data = await res.json();
-        data.forEach((coin) => {
-          const a = assets.find((x) => x.symbol === coin.code);
-          if (a) {
-            a.price = coin.rate || 0;
-            a.change = (coin.delta?.day ?? 0) * 100;
-          }
-        });
-        render();
-      } catch (e) {
-        console.warn('Price fetch failed:', e);
-        render(); // still render with zeros
-      }
-    }
-
-    function render() {
-      const tbody = $('#assets-table');
-      if (!tbody) return;
-      tbody.innerHTML = '';
-
-      // 🔥 Get AVAILABLE BALANCE straight from profile.profits
-      const balance = getBalanceFromProfile();
-      const balanceEl = $('#balance');
-      if (balanceEl) balanceEl.textContent = fmtUSD(balance);
-
-      const active = assets.filter((a) => (a.quantity || 0) > 0);
-      if (active.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="6" class="empty-state">
-              <i data-feather="pie-chart"></i>
-              <p>No holdings yet. Start investing to see your portfolio here.</p>
-            </td>
-          </tr>
-        `;
-        if (window.feather) feather.replace();
-        updateStats(0, balance);
-        updateChart([]);
-        if (assetCountEl) assetCountEl.textContent = '0 assets';
-        return;
-      }
-
-      let totalVal = 0;
-      active.forEach((a) => {
-        const val = a.quantity * a.price;
-        totalVal += val;
-        const changeClass = a.change >= 0 ? 'positive' : 'negative';
-        const changeIcon = a.change >= 0 ? 'arrow-up' : 'arrow-down';
-
-        tbody.insertAdjacentHTML(
-          'beforeend',
-          `
-          <tr>
-            <td>
-              <div style="display:flex;align-items:center;">
-                <div class="asset-icon">${a.symbol[0]}</div>
-                <div>
-                  <div style="font-weight:600;color:var(--text-dark);">${a.name}</div>
-                  <div style="font-size:.8rem;color:var(--text-gray);">${a.symbol}</div>
-                </div>
-              </div>
-            </td>
-            <td>
-              <span style="padding:4px 8px;background:#f1f5f9;border-radius:6px;font-size:.8rem;">
-                ${a.type}
-              </span>
-            </td>
-            <td style="font-weight:600;">
-              ${Number(a.quantity).toLocaleString('en-US', { maximumFractionDigits: 8 })}
-            </td>
-            <td>${fmtUSD(a.price, 2, 4)}</td>
-            <td style="font-weight:600;">${fmtUSD(val)}</td>
-            <td class="${changeClass}">
-              <div style="display:flex;align-items:center;gap:4px;">
-                <i data-feather="${changeIcon}" style="width:14px;height:14px;"></i>
-                ${Math.abs(a.change).toFixed(2)}%
-              </div>
-            </td>
-          </tr>
-        `
-        );
-      });
-
+    const active = assets.filter((a) => (a.quantity || 0) > 0);
+    if (active.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="6" class="empty-state">
+            <i data-feather="pie-chart"></i>
+            <p>No holdings yet. Start investing to see your portfolio here.</p>
+          </td>
+        </tr>
+      `;
       if (window.feather) feather.replace();
-      if (assetCountEl)
-        assetCountEl.textContent = `${active.length} asset${
-          active.length !== 1 ? 's' : ''
-        }`;
-
-      updateStats(totalVal, balance);
-      updateChart(active);
+      if (assetCountEl) assetCountEl.textContent = '0 assets';
+      return;
     }
 
-    function updateStats(totalInvestments, balance) {
-      const totalPortfolio = totalInvestments + balance;
-      const base = 1000; // your reference base
-      const pct =
-        totalInvestments > 0 ? ((totalPortfolio - base) / base) * 100 : 0;
+    active.forEach((a) => {
+      // No live prices anymore → show $0.00 and 0.00%
+      const price = 0;
+      const val = 0;
+      const change = 0;
+      const changeClass = 'positive';
+      const changeIcon = 'arrow-up';
 
-      $('#totalPortfolio').textContent = fmtUSD(totalPortfolio);
-      $('#totalInvestments').textContent = fmtUSD(totalInvestments);
-      $('#totalReturn').textContent = `${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%`;
+      tbody.insertAdjacentHTML(
+        'beforeend',
+        `
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;">
+              <div class="asset-icon">${a.symbol[0]}</div>
+              <div>
+                <div style="font-weight:600;color:var(--text-dark);">${a.name}</div>
+                <div style="font-size:.8rem;color:var(--text-gray);">${a.symbol}</div>
+              </div>
+            </div>
+          </td>
+          <td>
+            <span style="padding:4px 8px;background:#f1f5f9;border-radius:6px;font-size:.8rem;">
+              ${a.type}
+            </span>
+          </td>
+          <td style="font-weight:600;">
+            ${Number(a.quantity).toLocaleString('en-US', { maximumFractionDigits: 8 })}
+          </td>
+          <td>${fmtUSD(price, 2, 4)}</td>
+          <td style="font-weight:600;">${fmtUSD(val)}</td>
+          <td class="${changeClass}">
+            <div style="display:flex;align-items:center;gap:4px;">
+              <i data-feather="${changeIcon}" style="width:14px;height:14px;"></i>
+              ${Math.abs(change).toFixed(2)}%
+            </div>
+          </td>
+        </tr>
+      `
+      );
+    });
 
-      const wrap = $('#totalReturn')?.parentElement?.querySelector('.stat-change');
-      if (wrap) {
-        wrap.classList.toggle('positive', pct >= 0);
-        wrap.classList.toggle('negative', pct < 0);
-      }
+    if (window.feather) feather.replace();
+    if (assetCountEl)
+      assetCountEl.textContent = `${active.length} asset${
+        active.length !== 1 ? 's' : ''
+      }`;
+  }
+
+  function updateChart(active) {
+    const ctx = document.getElementById('portfolioChart');
+    if (!ctx) return;
+
+    // No live prices → no real distribution; destroy any existing chart
+    if (portfolioChart) {
+      portfolioChart.destroy();
+      portfolioChart = null;
     }
-
-    function updateChart(active) {
-      const ctx = document.getElementById('portfolioChart');
-      if (!ctx) return;
-
-      if (!active.length) {
-        if (portfolioChart) portfolioChart.destroy();
-        return;
-      }
-
-      const labels = active.map((a) => a.symbol);
-      const values = active.map((a) => a.quantity * a.price);
-      const colors = [
-        '#4f46e5',
-        '#10b981',
-        '#f59e0b',
-        '#3b82f6',
-        '#ef4444',
-        '#8b5cf6',
-        '#ec4899'
-      ];
-
-      if (portfolioChart) {
-        portfolioChart.data.labels = labels;
-        portfolioChart.data.datasets[0].data = values;
-        portfolioChart.data.datasets[0].backgroundColor = colors.slice(
-          0,
-          labels.length
-        );
-        portfolioChart.update();
-      } else {
-        portfolioChart = new Chart(ctx, {
-          type: 'doughnut',
-          data: {
-            labels,
-            datasets: [
-              {
-                data: values,
-                backgroundColor: colors.slice(0, labels.length),
-                borderWidth: 0
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-              legend: { display: false }
-            }
-          }
-        });
-      }
-    }
-
-    // Initial + interval refresh
-    fetchLivePrices();
-    setInterval(fetchLivePrices, 60000);
   }
 </script>
 
