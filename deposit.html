@@ -232,7 +232,6 @@
               <option value="BTC">BTC (SegWit)</option>
               <option value="ERC20">ETH (ERC20)</option>
             </select>
-            <div class="tip">When depositing crypto, include the selected network (e.g., TRC20, BTC, ERC20) in the Reference field below.</div>
           </div>
         </div>
 
@@ -244,7 +243,6 @@
             <div><strong>Account Number:</strong> <code id="acctNumber">1234567890</code> <button type="button" class="copy-btn" data-copy="acctNumber">Copy</button></div>
             <div><strong>IBAN:</strong> <code id="iban">GB12 BARC 1234 5678 9012 34</code> <button type="button" class="copy-btn" data-copy="iban">Copy</button></div>
             <div><strong>SWIFT/BIC:</strong> <code id="swift">BARCGB22</code> <button type="button" class="copy-btn" data-copy="swift">Copy</button></div>
-            <div class="tip">Include your email or the reference code below in the transfer memo for faster reconciliation.</div>
           </div>
         </div>
 
@@ -263,276 +261,296 @@
           </div>
         </div>
 
-        <label for="reference">Reference (optional)</label>
-        <input type="text" id="reference" name="reference" placeholder="Transaction reference" />
-
         <button class="btn" type="submit">Submit Deposit</button>
       </form>
     </div>
   </div>
   <script>
     (function(){
-      const methodEl = document.getElementById('method');
-      const helpEl = document.getElementById('methodHelp');
-      const bankPanel = document.getElementById('bankPanel');
-      const cryptoPanel = document.getElementById('cryptoPanel');
-      const cryptoNetworkRow = document.getElementById('cryptoNetworkRow');
-      const cryptoNetworkEl = document.getElementById('cryptoNetwork');
-      const form = document.getElementById('depositForm');
-
-      function updatePanels() {
-        const val = methodEl.value;
-        if (val === 'bank_transfer') {
-          bankPanel.style.display = '';
-          cryptoPanel.style.display = 'none';
-          cryptoNetworkRow.style.display = 'none';
-          helpEl.textContent = 'You selected Bank Transfer. Use the details below and include your email or reference in the memo.';
-        } else if (val === 'crypto') {
-          bankPanel.style.display = 'none';
-          cryptoPanel.style.display = '';
-          cryptoNetworkRow.style.display = '';
-          helpEl.textContent = 'You selected Crypto. Choose the correct network and include it in the Reference field.';
-        } else {
-          bankPanel.style.display = 'none';
-          cryptoPanel.style.display = 'none';
-          cryptoNetworkRow.style.display = 'none';
-          helpEl.textContent = 'Choose Bank Transfer or Crypto. Card deposits are not available.';
-        }
+      // Wait for DOM
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
       }
-
-      methodEl.addEventListener('change', updatePanels);
-      updatePanels();
-
-      // Copy buttons
-      document.querySelectorAll('.copy-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const id = btn.getAttribute('data-copy');
-          const el = document.getElementById(id);
-          if (!el) return;
-          const text = el.textContent.trim();
-          navigator.clipboard.writeText(text).then(() => {
-            const old = btn.textContent;
-            btn.textContent = 'Copied';
-            setTimeout(() => { btn.textContent = old; }, 1200);
-          });
-        });
-      });
-
-      // Client validation: when crypto, ensure reference contains selected network keyword
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        if (methodEl.value === 'crypto') {
-          const net = (cryptoNetworkEl.value || '').trim();
-          if (!net) {
-            alert('Please select a Crypto Network.');
-            return;
-          }
-          const ref = (document.getElementById('reference').value || '').toUpperCase();
-          if (!ref.includes(net)) {
-            alert('Reference must include the selected network keyword: ' + net + '.');
-            return;
-          }
-        }
-        
-        // Call handleDeposit function
-        await handleDeposit(e);
-      });
       
-      /**
-       * WALLET ADDRESS CONFIGURATION
-       * 
-       * To update wallet addresses in the future, simply modify the 'address' values below.
-       * The QR code and displayed addresses will automatically update.
-       * 
-       * Example: To change the TRC20 address, update:
-       * address: 'TQTuusHXY85QRijQK93t6oM8p4bpx1b22w'
-       * to your new address.
-       */
-      const walletAddresses = {
-        'TRC20': {
-          id: 'usdtTrc20',
-          label: 'USDT (TRC20)',
-          address: 'TQTuusHXY85QRijQK93t6oM8p4bpx1b22w' // Update this address as needed
-        },
-        'BTC': {
-          id: 'btcSegwit',
-          label: 'BTC (SegWit)',
-          address: 'bc1qexamplebtcaddress000000000' // Update this address as needed
-        },
-        'ERC20': {
-          id: 'ethErc20',
-          label: 'ETH (ERC20)',
-          address: '0x1234567890abcdef1234567890abcdef12345678' // Update this address as needed
-        }
-      };
+      function init() {
+        const methodEl = document.getElementById('method');
+        const helpEl = document.getElementById('methodHelp');
+        const bankPanel = document.getElementById('bankPanel');
+        const cryptoPanel = document.getElementById('cryptoPanel');
+        const cryptoNetworkRow = document.getElementById('cryptoNetworkRow');
+        const cryptoNetworkEl = document.getElementById('cryptoNetwork');
+        const form = document.getElementById('depositForm');
 
-      // Function to update wallet addresses in the DOM (for dynamic updates)
-      function updateWalletAddressesInDOM() {
-        Object.keys(walletAddresses).forEach(network => {
-          const config = walletAddresses[network];
-          const codeEl = document.getElementById(config.id);
-          if (codeEl) {
-            codeEl.textContent = config.address;
-          }
-        });
-      }
-
-      // Show only selected crypto address and generate QR code
-      function updateCryptoAddresses() {
-        const net = (cryptoNetworkEl.value || '').trim();
-        const qrContainer = document.getElementById('qrCodeContainer');
-        const qrDisplay = document.getElementById('qrCodeDisplay');
-        let walletAddress = '';
-        let networkName = '';
-        
-        if (!qrContainer || !qrDisplay) {
+        if (!form) {
+          console.error('Deposit form not found!');
           return;
         }
-        
-        // Update wallet addresses in DOM first (in case they changed)
-        updateWalletAddressesInDOM();
-        
-        // Show/hide address rows and get the selected wallet address
-        document.querySelectorAll('#cryptoPanel .addr-row').forEach(row => {
-          const isVisible = row.getAttribute('data-network') === net && methodEl.value === 'crypto';
-          row.style.display = isVisible ? '' : 'none';
+
+        function updatePanels() {
+          if (!methodEl) return;
+          const val = methodEl.value;
+          if (val === 'bank_transfer') {
+            if (bankPanel) bankPanel.style.display = '';
+            if (cryptoPanel) cryptoPanel.style.display = 'none';
+            if (cryptoNetworkRow) cryptoNetworkRow.style.display = 'none';
+            if (helpEl) helpEl.textContent = 'You selected Bank Transfer. Use the details below and include your email or reference in the memo.';
+          } else if (val === 'crypto') {
+            if (bankPanel) bankPanel.style.display = 'none';
+            if (cryptoPanel) cryptoPanel.style.display = '';
+            if (cryptoNetworkRow) cryptoNetworkRow.style.display = '';
+            if (helpEl) helpEl.textContent = 'You selected Crypto. Choose the correct network and include it in the Reference field.';
+          } else {
+            if (bankPanel) bankPanel.style.display = 'none';
+            if (cryptoPanel) cryptoPanel.style.display = 'none';
+            if (cryptoNetworkRow) cryptoNetworkRow.style.display = 'none';
+            if (helpEl) helpEl.textContent = 'Choose Bank Transfer or Crypto. Card deposits are not available.';
+          }
+        }
+
+        if (methodEl) {
+          methodEl.addEventListener('change', updatePanels);
+          updatePanels();
+        }
+
+        // Copy buttons
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = btn.getAttribute('data-copy');
+            const el = document.getElementById(id);
+            if (!el) return;
+            const text = el.textContent.trim();
+            navigator.clipboard.writeText(text).then(() => {
+              const old = btn.textContent;
+              btn.textContent = 'Copied';
+              setTimeout(() => { btn.textContent = old; }, 1200);
+            });
+          });
+        });
+
+        // Crypto address updates and QR code
+        function updateCryptoAddresses() {
+          const methodEl = document.getElementById('method');
+          const cryptoNetworkEl = document.getElementById('cryptoNetwork');
+          const net = (cryptoNetworkEl?.value || '').trim();
+          const qrContainer = document.getElementById('qrCodeContainer');
+          const qrDisplay = document.getElementById('qrCodeDisplay');
+          let walletAddress = '';
+          let networkName = '';
           
-          if (isVisible) {
-            const codeEl = row.querySelector('code');
-            if (codeEl) {
-              walletAddress = codeEl.textContent.trim();
-              const strongEl = row.querySelector('strong');
-              if (strongEl) {
-                networkName = strongEl.textContent.replace(':', '').trim();
+          if (!qrContainer || !qrDisplay) {
+            return;
+          }
+          
+          // Show/hide address rows and get the selected wallet address
+          document.querySelectorAll('#cryptoPanel .addr-row').forEach(row => {
+            const isVisible = row.getAttribute('data-network') === net && methodEl?.value === 'crypto';
+            row.style.display = isVisible ? '' : 'none';
+            
+            if (isVisible) {
+              const codeEl = row.querySelector('code');
+              if (codeEl) {
+                walletAddress = codeEl.textContent.trim();
+                const strongEl = row.querySelector('strong');
+                if (strongEl) {
+                  networkName = strongEl.textContent.replace(':', '').trim();
+                }
               }
+            }
+          });
+          
+          // Generate QR code if wallet address is available
+          if (walletAddress && methodEl?.value === 'crypto' && net) {
+            qrContainer.style.display = 'flex';
+            
+            // Use QR Server API for reliable QR code generation
+            const qrSize = 200;
+            const encodedAddress = encodeURIComponent(walletAddress);
+            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodedAddress}&bgcolor=ffffff&color=0a3d62&margin=2`;
+            
+            // Clear previous QR code
+            qrDisplay.innerHTML = '';
+            
+            // Create and display QR code image
+            const qrImg = document.createElement('img');
+            qrImg.src = qrUrl;
+            qrImg.alt = `QR Code for ${networkName} wallet address`;
+            qrImg.style.width = qrSize + 'px';
+            qrImg.style.height = qrSize + 'px';
+            qrImg.style.borderRadius = '8px';
+            qrImg.style.display = 'block';
+            qrImg.onerror = function() {
+              console.error('Failed to load QR code image');
+              qrContainer.style.display = 'none';
+            };
+            qrImg.onload = function() {
+              console.log('QR code loaded successfully for:', walletAddress);
+            };
+            
+            qrDisplay.appendChild(qrImg);
+          } else {
+            qrContainer.style.display = 'none';
+          }
+        }
+
+        // Crypto address updates
+        if (cryptoNetworkEl) {
+          cryptoNetworkEl.addEventListener('change', updateCryptoAddresses);
+        }
+        if (methodEl) {
+          methodEl.addEventListener('change', updateCryptoAddresses);
+        }
+        
+        // Initial call
+        updateCryptoAddresses();
+
+        // Form submission handler
+        form.addEventListener('submit', async (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          // Basic validation
+          const amountInput = document.getElementById('amount');
+          if (!amountInput) {
+            alert('Amount field not found. Please refresh the page.');
+            return;
+          }
+          
+          const amount = parseFloat(amountInput.value);
+          
+          if (!amount || amount <= 0 || isNaN(amount)) {
+            alert('Please enter a valid deposit amount.');
+            return;
+          }
+          
+          // Validate payment method
+          if (!methodEl || !methodEl.value) {
+            alert('Please select a payment method.');
+            return;
+          }
+          
+          // Validate crypto network if crypto is selected
+          if (methodEl.value === 'crypto') {
+            const net = (cryptoNetworkEl?.value || '').trim();
+            if (!net) {
+              alert('Please select a Crypto Network.');
+              return;
+            }
+          }
+          
+          // Show loading state
+          const submitBtn = form.querySelector('button[type="submit"]');
+          const originalText = submitBtn?.textContent;
+          if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+          }
+          
+          try {
+            // Wait for Supabase to be available
+            if (!window.supabase) {
+              let attempts = 0;
+              while (!window.supabase && attempts < 10) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+              }
+            }
+            
+            // Call handleDeposit function
+            await handleDeposit(e);
+          } catch (error) {
+            console.error('Error in form submission:', error);
+            alert('An error occurred: ' + (error.message || 'Unknown error'));
+          } finally {
+            // Restore button
+            if (submitBtn) {
+              submitBtn.disabled = false;
+              if (originalText) submitBtn.textContent = originalText;
             }
           }
         });
         
-        // Generate QR code if wallet address is available
-        if (walletAddress && methodEl.value === 'crypto' && net) {
-          qrContainer.style.display = 'flex';
-          
-          // Use QR Server API for reliable QR code generation
-          const qrSize = 200;
-          const encodedAddress = encodeURIComponent(walletAddress);
-          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodedAddress}&bgcolor=ffffff&color=0a3d62&margin=2`;
-          
-          // Clear previous QR code
-          qrDisplay.innerHTML = '';
-          
-          // Create and display QR code image
-          const qrImg = document.createElement('img');
-          qrImg.src = qrUrl;
-          qrImg.alt = `QR Code for ${networkName} wallet address`;
-          qrImg.style.width = qrSize + 'px';
-          qrImg.style.height = qrSize + 'px';
-          qrImg.style.borderRadius = '8px';
-          qrImg.style.display = 'block';
-          qrImg.onerror = function() {
-            console.error('Failed to load QR code image');
-            qrContainer.style.display = 'none';
-          };
-          qrImg.onload = function() {
-            console.log('QR code loaded successfully for:', walletAddress);
-          };
-          
-          qrDisplay.appendChild(qrImg);
-        } else {
-          qrContainer.style.display = 'none';
-        }
+        console.log('Form handler attached successfully');
       }
-      
-      cryptoNetworkEl.addEventListener('change', updateCryptoAddresses);
-      methodEl.addEventListener('change', updateCryptoAddresses);
-      
-      // Initial call
-      updateCryptoAddresses();
     })();
 
     async function handleDeposit(event) {
-      event.preventDefault();
+      if (event) event.preventDefault();
       
-      // Ensure Supabase is available
       if (!window.supabase) {
         alert('System is initializing. Please wait a moment and try again.');
         return;
       }
-      
-      // Check Supabase authentication
-      const { data: { session } } = await window.supabase.auth.getSession();
-      if (!session?.user) {
-        alert('Please login first');
-        window.location.href = 'login.html';
+
+      const form = document.getElementById('depositForm');
+      if (!form) {
+        alert('Form not found. Please refresh the page.');
         return;
       }
 
-      const formData = new FormData(event.target);
+      const formData = new FormData(form);
       const amount = parseFloat(formData.get('amount'));
 
+      if (!amount || amount <= 0 || isNaN(amount)) {
+        alert('Please enter a valid deposit amount.');
+        return;
+      }
+
       try {
-        // Get current profile with all necessary fields
-        const { data: currentProfile, error: fetchError } = await window.supabase
+        const { data: { session }, error: sessionError } = await window.supabase.auth.getSession();
+        
+        if (sessionError || !session?.user) {
+          alert('Please login first');
+          window.location.href = 'login.html';
+          return;
+        }
+
+        // Get current profile - fetch fresh data
+        let currentProfile;
+        const { data: profileData, error: fetchError } = await window.supabase
           .from('profiles')
           .select('available_balance,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
           .eq('id', session.user.id)
           .single();
 
-        if (fetchError) {
-          console.error('Error fetching profile:', fetchError);
-          // If profile doesn't exist, try to create a basic one
-          if (fetchError.code === 'PGRST116') {
-            // Profile doesn't exist, create it
-            const { data: newProfile, error: createError } = await window.supabase
-              .from('profiles')
-              .insert({
-                id: session.user.id,
-                available_balance: 0,
-                btc: 0,
-                eth: 0,
-                dodge: 0,
-                usdt: 0,
-                xlm: 0,
-                xrp: 0,
-                shiba: 0,
-                ltc: 0
-              })
-              .select()
-              .single();
-            
-            if (createError) {
-              console.error('Error creating profile:', createError);
-              alert('Failed to create profile. Please try again.');
-              return;
-            }
-            
-            // Use the newly created profile
-            const currentBalance = 0;
-            const newBalance = amount;
-            
-            const updateData = { available_balance: newBalance };
-            
-            // Update profile with deposit
-            const { error: updateError } = await window.supabase
-              .from('profiles')
-              .update(updateData)
-              .eq('id', session.user.id);
-
-            if (updateError) {
-              console.error('Error updating profile:', updateError);
-              alert('Failed to save deposit. Please try again.');
-              return;
-            }
-
-            alert('Deposit successful!');
-            window.location.href = 'dashboard.html';
-            return;
-          } else {
-            alert('Failed to load profile. Please try again.');
+        if (fetchError && fetchError.code === 'PGRST116') {
+          // Profile doesn't exist, create it
+          const { data: newProfile, error: createError } = await window.supabase
+            .from('profiles')
+            .insert({
+              id: session.user.id,
+              available_balance: 0,
+              btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0
+            })
+            .select()
+            .single();
+          
+          if (createError) {
+            console.error('Error creating profile:', createError);
+            alert('Error creating profile. Please try again.');
             return;
           }
+          // Use the newly created profile
+          currentProfile = newProfile || { available_balance: 0, btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0 };
+        } else if (fetchError) {
+          console.error('Error fetching profile:', fetchError);
+          alert('Error loading profile. Please try again.');
+          return;
+        } else {
+          currentProfile = profileData || { available_balance: 0, btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0 };
         }
+        
+        // Ensure all fields have default values
+        if (!currentProfile.available_balance && currentProfile.available_balance !== 0) currentProfile.available_balance = 0;
+        if (!currentProfile.btc && currentProfile.btc !== 0) currentProfile.btc = 0;
+        if (!currentProfile.eth && currentProfile.eth !== 0) currentProfile.eth = 0;
+        if (!currentProfile.dodge && currentProfile.dodge !== 0) currentProfile.dodge = 0;
+        if (!currentProfile.usdt && currentProfile.usdt !== 0) currentProfile.usdt = 0;
+        if (!currentProfile.xlm && currentProfile.xlm !== 0) currentProfile.xlm = 0;
+        if (!currentProfile.xrp && currentProfile.xrp !== 0) currentProfile.xrp = 0;
+        if (!currentProfile.shiba && currentProfile.shiba !== 0) currentProfile.shiba = 0;
+        if (!currentProfile.ltc && currentProfile.ltc !== 0) currentProfile.ltc = 0;
 
         const currentBalance = parseFloat(currentProfile?.available_balance || 0);
         const newBalance = currentBalance + amount;
@@ -541,23 +559,25 @@
         const selectedPlanStr = localStorage.getItem('selectedPlan');
         let plan = null;
         if (selectedPlanStr) {
-          plan = JSON.parse(selectedPlanStr);
+          try {
+            plan = JSON.parse(selectedPlanStr);
+          } catch (e) {
+            console.warn('Error parsing selected plan:', e);
+          }
         }
 
         const updateData = {
           available_balance: newBalance
         };
 
-        // If plan is selected and user has enough balance
+        // If plan is selected and user has enough balance, enroll and allocate assets
         if (plan && newBalance >= plan.monthlyAmount) {
-          // Calculate asset allocation based on plan
           const investmentAmount = plan.monthlyAmount;
           const remainingBalance = newBalance - investmentAmount;
           
-          // Fetch current crypto prices and allocate assets
+          // Calculate asset allocation
           const assetAllocation = await calculateAssetAllocation(plan.type, investmentAmount);
           
-          // Update profile with plan and assets
           updateData.available_balance = remainingBalance;
           updateData.investment_plan = JSON.stringify({
             type: plan.type,
@@ -569,13 +589,11 @@
           
           // Add allocated assets to existing holdings
           Object.keys(assetAllocation).forEach(asset => {
-            const currentQty = parseFloat(currentProfile[asset] || 0);
-            updateData[asset] = currentQty + assetAllocation[asset];
+            const currentQty = parseFloat(currentProfile?.[asset] || 0);
+            updateData[asset] = (currentQty || 0) + (assetAllocation[asset] || 0);
           });
 
-          // Remove selected plan from localStorage
           localStorage.removeItem('selectedPlan');
-          
           alert(`Deposit successful! You have been automatically enrolled in the ${plan.name} plan.\n\nYour investment of $${investmentAmount.toLocaleString()} has been allocated to your portfolio.`);
         } else if (plan) {
           alert(`Deposit successful! However, you need at least $${plan.monthlyAmount.toLocaleString()} to enroll in the ${plan.name} plan. Your current balance is $${newBalance.toLocaleString()}. Please deposit more funds.`);
@@ -583,7 +601,7 @@
           alert('Deposit successful!');
         }
 
-        // Update profile in database
+        // Update profile with all changes
         const { error: updateError } = await window.supabase
           .from('profiles')
           .update(updateData)
@@ -591,16 +609,23 @@
 
         if (updateError) {
           console.error('Error updating profile:', updateError);
-          alert('Failed to save deposit. Please try again.');
+          alert('Error updating balance. Please try again.');
           return;
         }
 
+        console.log('Profile updated successfully:', updateData);
+        
+        // Small delay to ensure database update completes before redirect
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Redirect to dashboard
         window.location.href = 'dashboard.html';
       } catch (error) {
         console.error('Error processing deposit:', error);
         alert('An error occurred. Please try again.');
       }
     }
+
 
     // Calculate asset allocation based on investment plan (converts USD to crypto quantities)
     async function calculateAssetAllocation(planType, amount) {
@@ -739,6 +764,4 @@
 <script src="page-transitions.js"></script>
 </body>
 </html>
-
-
 
