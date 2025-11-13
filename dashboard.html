@@ -486,7 +486,7 @@ async function proceed(session) {
     try {
     const { data, error } = await supabase
   .from('profiles')
-  .select('full_name,username,profits,available_balance,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc,last_login,trn_date')
+  .select('full_name,username,profits,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc,last_login,trn_date')
   .eq('id', session.user.id)
   .single();
 
@@ -499,7 +499,7 @@ console.log('Profile fetched:', profile, 'error:', error?.message);
 
 const balEl = document.getElementById('balance');
 if (balEl) {
-  const raw = profile?.available_balance;
+  const raw = profile?.profits;
   const profits = (typeof raw === 'number' && Number.isFinite(raw))
     ? raw
     : (Number.parseFloat(raw ?? 0) || 0);
@@ -621,7 +621,7 @@ function hydrateHeader(p, session) {
 
 function render() {
    console.log('render() running');
-  const raw = p?.available_balance;
+  const raw = p?.profits;
   const balance = (typeof raw === 'number' && Number.isFinite(raw))
     ? raw
     : (Number.parseFloat(raw ?? 0) || 0);
