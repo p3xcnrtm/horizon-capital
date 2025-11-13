@@ -513,11 +513,25 @@
         };
 
         try {
-          const { data: profileData, error: fetchError } = await window.supabase
+          // First try to fetch without investment_plan (in case column doesn't exist)
+          let { data: profileData, error: fetchError } = await window.supabase
             .from('profiles')
-            .select('profits,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
+            .select('profits,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
             .eq('id', session.user.id)
             .single();
+          
+          // If that worked, try to also fetch investment_plan (optional)
+          if (!fetchError && profileData) {
+            const { data: planData } = await window.supabase
+              .from('profiles')
+              .select('investment_plan')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (planData && planData.investment_plan) {
+              profileData.investment_plan = planData.investment_plan;
+            }
+          }
 
           if (fetchError) {
             // If profile doesn't exist (PGRST116), create it
@@ -539,7 +553,7 @@
                   // Profile might have been created by another process, try fetching again
                   const { data: retryData } = await window.supabase
                     .from('profiles')
-                    .select('profits,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
+                    .select('profits,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
                     .eq('id', session.user.id)
                     .single();
                   
@@ -637,20 +651,20 @@
         }
 
         // Clean and validate update data - ensure all values are valid numbers
+        // Only include fields that definitely exist in the database
         const cleanUpdateData = {
           profits: parseFloat(updateData.profits) || 0
         };
-        
-        // Add investment plan if it exists
-        if (updateData.investment_plan) {
-          cleanUpdateData.investment_plan = updateData.investment_plan;
-        }
         
         // Add all asset fields with valid numbers (already set in updateData above)
         ['btc', 'eth', 'dodge', 'usdt', 'xlm', 'xrp', 'shiba', 'ltc'].forEach(asset => {
           const value = parseFloat(updateData[asset]);
           cleanUpdateData[asset] = (isNaN(value) ? 0 : value);
         });
+        
+        // Try to add investment_plan if it exists (but don't fail if column doesn't exist)
+        // We'll handle this separately to avoid errors
+        const hasInvestmentPlan = updateData.investment_plan && updateData.investment_plan.trim() !== '';
 
         // Verify Supabase is available
         if (!window.supabase) {
@@ -698,11 +712,33 @@
         }
 
         try {
-          // Simple update without select (matches dashboard.html pattern)
-          const { error: updateError } = await window.supabase
+          // Update only the fields that definitely exist (profits + assets)
+          // Skip investment_plan for now to avoid column errors
+          let { error: updateError } = await window.supabase
             .from('profiles')
             .update(cleanUpdateData)
             .eq('id', session.user.id);
+          
+          // If update succeeded, try to update investment_plan separately (optional)
+          if (!updateError && hasInvestmentPlan) {
+            try {
+              const { error: planError } = await window.supabase
+                .from('profiles')
+                .update({ investment_plan: updateData.investment_plan })
+                .eq('id', session.user.id);
+              
+              // If investment_plan column doesn't exist, that's okay - just log it
+              if (planError) {
+                console.warn('Note: investment_plan column may not exist:', planError.message);
+                // Don't treat this as a failure - the main update succeeded
+              } else {
+                console.log('Investment plan updated successfully');
+              }
+            } catch (planErr) {
+              console.warn('Could not update investment_plan:', planErr.message);
+              // Continue - main update succeeded
+            }
+          }
 
           if (updateError) {
             console.error('Update error details:', {
@@ -714,11 +750,16 @@
             
             // If update fails, try to upsert instead (insert or update)
             console.log('Trying upsert as fallback...');
+            
+            // Build upsert data - only include fields that definitely exist
+            const upsertData = { ...cleanUpdateData };
+            // Don't include investment_plan in upsert to avoid column errors
+            
             const { error: upsertError } = await window.supabase
               .from('profiles')
               .upsert({
                 id: session.user.id,
-                ...cleanUpdateData
+                ...upsertData
               }, {
                 onConflict: 'id'
               });
@@ -761,7 +802,7 @@
                 alert('Error updating balance: ' + errorMsg + errorDetails + errorHint + '\n\nPlease check the browser console (F12) for more details.');
                 return;
               }
-            } else {
+        } else {
               console.log('Profile upserted successfully');
         }
       } else {
