@@ -803,7 +803,8 @@ function hydrateHeader(p, session) {
 }
 
   function buildAssetsFromProfile(p) {
-    return [
+    console.log('buildAssetsFromProfile called with profile:', p);
+    const assets = [
       { symbol:'BTC', name:'Bitcoin',  type:'Crypto', quantity:Number(p?.btc||0),   price:0, change:0 },
       { symbol:'ETH', name:'Ethereum', type:'Crypto', quantity:Number(p?.eth||0),   price:0, change:0 },
       { symbol:'DOGE',name:'Dogecoin', type:'Crypto', quantity:Number(p?.dodge||0), price:0, change:0 },
@@ -813,6 +814,8 @@ function hydrateHeader(p, session) {
       { symbol:'SHIB',name:'Shiba',    type:'Crypto', quantity:Number(p?.shiba||0), price:0, change:0 },
       { symbol:'LTC', name:'Litecoin', type:'Crypto', quantity:Number(p?.ltc||0),   price:0, change:0 },
     ];
+    console.log('Built assets:', assets.map(a => `${a.symbol}: ${a.quantity}`));
+    return assets;
   }
 
   function startDashboard(p) {
@@ -1043,7 +1046,13 @@ function render(profileData) {
 
       // Use currentAssets if available, otherwise fall back to local assets
       const assetsToRender = currentAssets.length > 0 ? currentAssets : assets;
-      const active = assetsToRender.filter(a => (a.quantity || 0) > 0);
+      console.log('Assets to render:', assetsToRender.map(a => `${a.symbol}: ${a.quantity}`));
+      const active = assetsToRender.filter(a => {
+        const qty = Number(a.quantity) || 0;
+        console.log(`Asset ${a.symbol}: quantity=${qty}, will be ${qty > 0 ? 'included' : 'excluded'}`);
+        return qty > 0;
+      });
+      console.log('Active assets after filter:', active.length, active.map(a => `${a.symbol}: ${a.quantity}`));
       if (active.length === 0) {
         tbody.innerHTML = `
           <tr><td colspan="6" class="empty-state">
