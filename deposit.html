@@ -584,7 +584,7 @@
         const currentBalance = parseFloat(currentProfile?.available_balance || 0);
         const newBalance = currentBalance + amount;
 
-        // Check if there's a selected plan to enroll
+      // Check if there's a selected plan to enroll
         const selectedPlanStr = localStorage.getItem('selectedPlan');
         let plan = null;
         if (selectedPlanStr) {
@@ -652,37 +652,88 @@
           cleanUpdateData[asset] = (isNaN(value) ? 0 : value);
         });
 
+        // Verify Supabase is available
+        if (!window.supabase) {
+          alert('Database connection not available. Please refresh the page and try again.');
+          return;
+        }
+
         console.log('Updating profile with:', cleanUpdateData);
+        console.log('User ID:', session.user.id);
+        console.log('Clean update data type check:', {
+          available_balance: typeof cleanUpdateData.available_balance,
+          btc: typeof cleanUpdateData.btc,
+          eth: typeof cleanUpdateData.eth
+        });
+
+        // Verify profile exists before updating (or create it if it doesn't)
+        const { data: verifyProfile, error: verifyError } = await window.supabase
+          .from('profiles')
+          .select('id')
+          .eq('id', session.user.id)
+          .single();
+
+        if (verifyError) {
+          if (verifyError.code === 'PGRST116' || verifyError.message?.includes('No rows')) {
+            // Profile doesn't exist, create it first
+            console.log('Profile not found during verification, creating...');
+            const { error: createError } = await window.supabase
+              .from('profiles')
+              .insert({
+                id: session.user.id,
+                available_balance: 0,
+                btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0
+              });
+            
+            if (createError) {
+              console.error('Failed to create profile during verification:', createError);
+              // Continue anyway - the update might still work with upsert
+            } else {
+              console.log('Profile created during verification');
+            }
+          } else {
+            console.error('Profile verification failed:', verifyError);
+            // Continue anyway - might be a permission issue but update could still work
+          }
+        }
 
         try {
-          // First try update
-          const { data: updateResult, error: updateError } = await window.supabase
+          // Simple update without select (matches dashboard.html pattern)
+          const { error: updateError } = await window.supabase
             .from('profiles')
             .update(cleanUpdateData)
-            .eq('id', session.user.id)
-            .select()
-            .single();
+            .eq('id', session.user.id);
 
           if (updateError) {
-            console.warn('Update failed, trying upsert:', updateError.message);
+            console.error('Update error details:', {
+              message: updateError.message,
+              code: updateError.code,
+              details: updateError.details,
+              hint: updateError.hint
+            });
             
             // If update fails, try to upsert instead (insert or update)
-            const { data: upsertResult, error: upsertError } = await window.supabase
+            console.log('Trying upsert as fallback...');
+            const { error: upsertError } = await window.supabase
               .from('profiles')
               .upsert({
                 id: session.user.id,
                 ...cleanUpdateData
               }, {
                 onConflict: 'id'
-              })
-              .select()
-              .single();
+              });
 
             if (upsertError) {
-              console.error('Upsert also failed:', upsertError);
+              console.error('Upsert error details:', {
+                message: upsertError.message,
+                code: upsertError.code,
+                details: upsertError.details,
+                hint: upsertError.hint
+              });
               
               // Last resort: try inserting if profile truly doesn't exist
               if (upsertError.code === 'PGRST116' || upsertError.message?.includes('No rows')) {
+                console.log('Trying insert as last resort...');
                 const { error: insertError } = await window.supabase
                   .from('profiles')
                   .insert({
@@ -691,25 +742,35 @@
                   });
                 
                 if (insertError) {
-                  console.error('All update methods failed:', insertError);
-                  alert('Error updating balance. Please refresh the page and try again.');
+                  console.error('Insert error details:', {
+                    message: insertError.message,
+                    code: insertError.code,
+                    details: insertError.details,
+                    hint: insertError.hint
+                  });
+                  alert('Error updating balance: ' + (insertError.message || 'Unknown error') + '\n\nPlease check the browser console (F12) for more details.');
                   return;
                 } else {
                   console.log('Profile inserted successfully');
                 }
               } else {
-                alert('Error updating balance: ' + (upsertError.message || 'Unknown error') + '. Please try again.');
+                // Show detailed error to user
+                const errorMsg = upsertError.message || 'Unknown error';
+                const errorDetails = upsertError.details ? `\nDetails: ${upsertError.details}` : '';
+                const errorHint = upsertError.hint ? `\nHint: ${upsertError.hint}` : '';
+                alert('Error updating balance: ' + errorMsg + errorDetails + errorHint + '\n\nPlease check the browser console (F12) for more details.');
                 return;
               }
             } else {
-              console.log('Profile upserted successfully:', upsertResult);
+              console.log('Profile upserted successfully');
         }
       } else {
-            console.log('Profile updated successfully:', updateResult);
+            console.log('Profile updated successfully');
           }
         } catch (updateErr) {
           console.error('Update exception:', updateErr);
-          alert('Error updating profile: ' + (updateErr.message || 'Unknown error') + '. Please try again.');
+          console.error('Exception stack:', updateErr.stack);
+          alert('Error updating profile: ' + (updateErr.message || 'Unknown error') + '\n\nPlease check the browser console (F12) for more details.');
           return;
         }
         
@@ -862,6 +923,8 @@
 <script src="page-transitions.js"></script>
 </body>
 </html>
+
+
 
 
 
