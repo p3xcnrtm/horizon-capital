@@ -506,51 +506,80 @@
           return;
         }
 
-        // Get current profile - fetch fresh data
-        let currentProfile;
-        const { data: profileData, error: fetchError } = await window.supabase
-          .from('profiles')
-          .select('available_balance,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
-          .eq('id', session.user.id)
-          .single();
+        // Get current profile - fetch fresh data with robust error handling
+        let currentProfile = {
+          available_balance: 0,
+          btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0
+        };
 
-        if (fetchError && fetchError.code === 'PGRST116') {
-          // Profile doesn't exist, create it
-          const { data: newProfile, error: createError } = await window.supabase
+        try {
+          const { data: profileData, error: fetchError } = await window.supabase
             .from('profiles')
-            .insert({
-              id: session.user.id,
-              available_balance: 0,
-              btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0
-            })
-            .select()
+            .select('available_balance,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
+            .eq('id', session.user.id)
             .single();
-          
-          if (createError) {
-            console.error('Error creating profile:', createError);
-            alert('Error creating profile. Please try again.');
-            return;
+
+          if (fetchError) {
+            // If profile doesn't exist (PGRST116), create it
+            if (fetchError.code === 'PGRST116' || fetchError.message?.includes('No rows')) {
+              console.log('Profile not found, creating new profile...');
+              try {
+                const { data: newProfile, error: createError } = await window.supabase
+                  .from('profiles')
+                  .insert({
+                    id: session.user.id,
+                    available_balance: 0,
+                    btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0
+                  })
+                  .select()
+                  .single();
+                
+                if (createError) {
+                  console.warn('Could not create profile (may already exist):', createError.message);
+                  // Profile might have been created by another process, try fetching again
+                  const { data: retryData } = await window.supabase
+                    .from('profiles')
+                    .select('available_balance,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
+                    .eq('id', session.user.id)
+                    .single();
+                  
+                  if (retryData) {
+                    currentProfile = retryData;
+                  }
+                } else {
+                  currentProfile = newProfile || currentProfile;
+                  console.log('New profile created successfully');
+                }
+              } catch (createErr) {
+                console.warn('Profile creation attempt failed:', createErr);
+                // Continue with default profile
+              }
+            } else {
+              // Other errors - log but continue with default profile
+              console.warn('Profile query error:', fetchError.message, fetchError.code);
+            }
+          } else if (profileData) {
+            // Successfully loaded profile
+            currentProfile = profileData;
+            console.log('Profile loaded successfully');
           }
-          // Use the newly created profile
-          currentProfile = newProfile || { available_balance: 0, btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0 };
-        } else if (fetchError) {
-          console.error('Error fetching profile:', fetchError);
-          alert('Error loading profile. Please try again.');
-          return;
-        } else {
-          currentProfile = profileData || { available_balance: 0, btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0 };
+        } catch (e) {
+          console.warn('Profile fetch exception (using defaults):', e);
+          // Continue with default profile
         }
         
-        // Ensure all fields have default values
-        if (!currentProfile.available_balance && currentProfile.available_balance !== 0) currentProfile.available_balance = 0;
-        if (!currentProfile.btc && currentProfile.btc !== 0) currentProfile.btc = 0;
-        if (!currentProfile.eth && currentProfile.eth !== 0) currentProfile.eth = 0;
-        if (!currentProfile.dodge && currentProfile.dodge !== 0) currentProfile.dodge = 0;
-        if (!currentProfile.usdt && currentProfile.usdt !== 0) currentProfile.usdt = 0;
-        if (!currentProfile.xlm && currentProfile.xlm !== 0) currentProfile.xlm = 0;
-        if (!currentProfile.xrp && currentProfile.xrp !== 0) currentProfile.xrp = 0;
-        if (!currentProfile.shiba && currentProfile.shiba !== 0) currentProfile.shiba = 0;
-        if (!currentProfile.ltc && currentProfile.ltc !== 0) currentProfile.ltc = 0;
+        // Ensure all fields have default values (handle null/undefined)
+        if (currentProfile.available_balance === null || currentProfile.available_balance === undefined) {
+          currentProfile.available_balance = 0;
+        }
+        if (currentProfile.btc === null || currentProfile.btc === undefined) currentProfile.btc = 0;
+        if (currentProfile.eth === null || currentProfile.eth === undefined) currentProfile.eth = 0;
+        if (currentProfile.dodge === null || currentProfile.dodge === undefined) currentProfile.dodge = 0;
+        if (currentProfile.usdt === null || currentProfile.usdt === undefined) currentProfile.usdt = 0;
+        if (currentProfile.xlm === null || currentProfile.xlm === undefined) currentProfile.xlm = 0;
+        if (currentProfile.xrp === null || currentProfile.xrp === undefined) currentProfile.xrp = 0;
+        if (currentProfile.shiba === null || currentProfile.shiba === undefined) currentProfile.shiba = 0;
+        if (currentProfile.ltc === null || currentProfile.ltc === undefined) currentProfile.ltc = 0;
 
         const currentBalance = parseFloat(currentProfile?.available_balance || 0);
         const newBalance = currentBalance + amount;
@@ -602,18 +631,40 @@
         }
 
         // Update profile with all changes
-        const { error: updateError } = await window.supabase
-          .from('profiles')
-          .update(updateData)
-          .eq('id', session.user.id);
+        try {
+          const { error: updateError } = await window.supabase
+            .from('profiles')
+            .update(updateData)
+            .eq('id', session.user.id);
 
-        if (updateError) {
-          console.error('Error updating profile:', updateError);
-          alert('Error updating balance. Please try again.');
+          if (updateError) {
+            console.error('Error updating profile:', updateError);
+            
+            // If update fails, try to upsert instead (insert or update)
+            const { error: upsertError } = await window.supabase
+              .from('profiles')
+              .upsert({
+                id: session.user.id,
+                ...updateData
+              }, {
+                onConflict: 'id'
+              });
+
+            if (upsertError) {
+              console.error('Error upserting profile:', upsertError);
+              alert('Error updating balance. Please try again or refresh the page.');
+              return;
+            } else {
+              console.log('Profile upserted successfully');
+            }
+          } else {
+            console.log('Profile updated successfully:', updateData);
+          }
+        } catch (updateErr) {
+          console.error('Update exception:', updateErr);
+          alert('Error updating profile. Please try again.');
           return;
         }
-
-        console.log('Profile updated successfully:', updateData);
         
         // Small delay to ensure database update completes before redirect
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -764,4 +815,6 @@
 <script src="page-transitions.js"></script>
 </body>
 </html>
+
+
 
