@@ -650,15 +650,16 @@ async function proceed(session) {
   try {
     // Load profile with robust error handling
     profile = {
-      available_balance: 0,
+      profits: 0,
       btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0
     };
 
     try {
       // Try to fetch profile - use minimal required fields first
+      // Note: Using 'profits' instead of 'available_balance' to match database schema
       const { data, error } = await supabase
         .from('profiles')
-        .select('available_balance,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
+        .select('profits,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
         .eq('id', session.user.id)
         .single();
 
@@ -671,7 +672,7 @@ async function proceed(session) {
               .from('profiles')
               .insert({
                 id: session.user.id,
-                available_balance: 0,
+                profits: 0,
                 btc: 0,
                 eth: 0,
                 dodge: 0,
@@ -689,7 +690,7 @@ async function proceed(session) {
               // Profile might have been created by another process, try fetching again
               const { data: retryData } = await supabase
                 .from('profiles')
-                .select('available_balance,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
+                .select('profits,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
                 .eq('id', session.user.id)
                 .single();
               
@@ -715,8 +716,8 @@ async function proceed(session) {
       }
 
       // Ensure all required fields have defaults
-      if (profile.available_balance === null || profile.available_balance === undefined) {
-        profile.available_balance = 0;
+      if (profile.profits === null || profile.profits === undefined) {
+        profile.profits = 0;
       }
       if (profile.btc === null || profile.btc === undefined) profile.btc = 0;
       if (profile.eth === null || profile.eth === undefined) profile.eth = 0;
@@ -730,7 +731,7 @@ async function proceed(session) {
       // Update balance display immediately
       const balEl = document.getElementById('balance');
       if (balEl) {
-        const raw = profile?.available_balance;
+        const raw = profile?.profits;
         const balance = (typeof raw === 'number' && Number.isFinite(raw))
           ? raw
           : (Number.parseFloat(raw ?? 0) || 0);
@@ -741,7 +742,7 @@ async function proceed(session) {
       // Any exception - use default profile and continue
       console.warn('Profile loading exception (using defaults):', e);
       profile = {
-        available_balance: 0,
+        profits: 0,
         btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0
       };
     }
@@ -915,14 +916,14 @@ function hydrateHeader(p, session) {
           totalPortfolioValue += (asset.quantity || 0) * (asset.price || 0);
         });
         
-        // Get current available_balance
+        // Get current profits
         const { data: currentProfile } = await supabase
           .from('profiles')
-          .select('available_balance')
+          .select('profits')
           .eq('id', session.user.id)
           .single();
         
-        const currentBalance = parseFloat(currentProfile?.available_balance || 0);
+        const currentBalance = parseFloat(currentProfile?.profits || 0);
         
         // Calculate profit (portfolio value - initial investment)
         // For simplicity, we'll track profit as the difference between current portfolio value and a base
@@ -956,11 +957,11 @@ function hydrateHeader(p, session) {
         const portfolioProfit = totalPortfolioValue * expectedReturnRate * Math.max(0, timeMultiplier);
         const newAvailableBalance = currentBalance + portfolioProfit;
         
-        // Update available_balance in database (only if significant change to avoid too many updates)
+        // Update profits in database (only if significant change to avoid too many updates)
         if (Math.abs(newAvailableBalance - currentBalance) > 0.01) {
           await supabase
             .from('profiles')
-            .update({ available_balance: newAvailableBalance })
+            .update({ profits: newAvailableBalance })
             .eq('id', session.user.id);
         }
       } catch (error) {
@@ -972,7 +973,7 @@ function render(profileData) {
    console.log('render() running');
   // Use profileData parameter if provided, otherwise fall back to p
   const profileForRender = profileData || p;
-  const raw = profileForRender?.available_balance;
+  const raw = profileForRender?.profits;
   const balance = (typeof raw === 'number' && Number.isFinite(raw))
     ? raw
     : (Number.parseFloat(raw ?? 0) || 0);
@@ -1197,7 +1198,7 @@ function render(profileData) {
       // Reload profile and refresh dashboard
       const { data: updatedProfile } = await supabase
         .from('profiles')
-        .select('full_name,username,profits,available_balance,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc,last_login,trn_date')
+        .select('full_name,username,profits,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc,last_login,trn_date')
         .eq('id', session.user.id)
         .single();
 
@@ -1212,7 +1213,7 @@ function render(profileData) {
         // Update balance display
         const balEl = document.getElementById('balance');
         if (balEl) {
-          const raw = updatedProfile?.available_balance;
+          const raw = updatedProfile?.profits;
           const profits = (typeof raw === 'number' && Number.isFinite(raw))
             ? raw
             : (Number.parseFloat(raw ?? 0) || 0);
@@ -1261,6 +1262,4 @@ function render(profileData) {
 <script src="page-transitions.js"></script>
 </body>
 </html>
-
-
 
