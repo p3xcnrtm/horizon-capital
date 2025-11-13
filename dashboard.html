@@ -648,80 +648,84 @@
  // ---- After we know we’re authenticated ----
 async function proceed(session) {
   try {
-    // Load profile (don't block UI forever if it fails)
+    // Load profile with robust error handling
+    profile = {
+      available_balance: 0,
+      btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0
+    };
+
     try {
+      // Try to fetch profile - use minimal required fields first
       const { data, error } = await supabase
         .from('profiles')
-        .select('full_name,username,profits,available_balance,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc,last_login,trn_date')
+        .select('available_balance,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
         .eq('id', session.user.id)
         .single();
 
       if (error) {
         // If profile doesn't exist (PGRST116), create it
-        if (error.code === 'PGRST116') {
+        if (error.code === 'PGRST116' || error.message?.includes('No rows')) {
           console.log('Profile not found, creating new profile...');
-          const { data: newProfile, error: createError } = await supabase
-            .from('profiles')
-            .insert({
-              id: session.user.id,
-              available_balance: 0,
-              btc: 0,
-              eth: 0,
-              dodge: 0,
-              usdt: 0,
-              xlm: 0,
-              xrp: 0,
-              shiba: 0,
-              ltc: 0
-            })
-            .select()
-            .single();
+          try {
+            const { data: newProfile, error: createError } = await supabase
+              .from('profiles')
+              .insert({
+                id: session.user.id,
+                available_balance: 0,
+                btc: 0,
+                eth: 0,
+                dodge: 0,
+                usdt: 0,
+                xlm: 0,
+                xrp: 0,
+                shiba: 0,
+                ltc: 0
+              })
+              .select()
+              .single();
 
-          if (createError) {
-            console.error('Error creating profile:', createError);
-            profile = {
-              available_balance: 0,
-              btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0
-            };
-          } else {
-            profile = newProfile || {};
-            console.log('New profile created successfully');
+            if (createError) {
+              console.warn('Could not create profile (may already exist):', createError.message);
+              // Profile might have been created by another process, try fetching again
+              const { data: retryData } = await supabase
+                .from('profiles')
+                .select('available_balance,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
+                .eq('id', session.user.id)
+                .single();
+              
+              if (retryData) {
+                profile = retryData;
+              }
+            } else {
+              profile = newProfile || profile;
+              console.log('New profile created successfully');
+            }
+          } catch (createErr) {
+            console.warn('Profile creation attempt failed:', createErr);
+            // Continue with default profile
           }
         } else {
-          console.warn('Profile load failed:', error.message, error.code);
-          // Use empty profile with defaults
-          profile = {
-            available_balance: 0,
-            btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0
-          };
+          // Other errors - log but continue with default profile
+          console.warn('Profile query error:', error.message, error.code);
         }
-      } else {
-        profile = data || {};
-        console.log('Profile loaded successfully:', {
-          balance: profile?.available_balance,
-          btc: profile?.btc,
-          eth: profile?.eth,
-          dodge: profile?.dodge,
-          usdt: profile?.usdt,
-          xlm: profile?.xlm,
-          xrp: profile?.xrp,
-          shiba: profile?.shiba,
-          ltc: profile?.ltc
-        });
+      } else if (data) {
+        // Successfully loaded profile
+        profile = data;
+        console.log('Profile loaded successfully');
       }
 
-      // Ensure profile has all required fields with defaults
-      if (!profile.available_balance && profile.available_balance !== 0) {
+      // Ensure all required fields have defaults
+      if (profile.available_balance === null || profile.available_balance === undefined) {
         profile.available_balance = 0;
       }
-      if (!profile.btc && profile.btc !== 0) profile.btc = 0;
-      if (!profile.eth && profile.eth !== 0) profile.eth = 0;
-      if (!profile.dodge && profile.dodge !== 0) profile.dodge = 0;
-      if (!profile.usdt && profile.usdt !== 0) profile.usdt = 0;
-      if (!profile.xlm && profile.xlm !== 0) profile.xlm = 0;
-      if (!profile.xrp && profile.xrp !== 0) profile.xrp = 0;
-      if (!profile.shiba && profile.shiba !== 0) profile.shiba = 0;
-      if (!profile.ltc && profile.ltc !== 0) profile.ltc = 0;
+      if (profile.btc === null || profile.btc === undefined) profile.btc = 0;
+      if (profile.eth === null || profile.eth === undefined) profile.eth = 0;
+      if (profile.dodge === null || profile.dodge === undefined) profile.dodge = 0;
+      if (profile.usdt === null || profile.usdt === undefined) profile.usdt = 0;
+      if (profile.xlm === null || profile.xlm === undefined) profile.xlm = 0;
+      if (profile.xrp === null || profile.xrp === undefined) profile.xrp = 0;
+      if (profile.shiba === null || profile.shiba === undefined) profile.shiba = 0;
+      if (profile.ltc === null || profile.ltc === undefined) profile.ltc = 0;
 
       // Update balance display immediately
       const balEl = document.getElementById('balance');
@@ -734,8 +738,8 @@ async function proceed(session) {
       }
 
     } catch (e) {
-      console.error('Profile exception:', e);
-      // Use default empty profile
+      // Any exception - use default profile and continue
+      console.warn('Profile loading exception (using defaults):', e);
       profile = {
         available_balance: 0,
         btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0
@@ -1257,4 +1261,6 @@ function render(profileData) {
 <script src="page-transitions.js"></script>
 </body>
 </html>
+
+
 
