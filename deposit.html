@@ -275,33 +275,33 @@
       }
       
       function init() {
-        const methodEl = document.getElementById('method');
-        const helpEl = document.getElementById('methodHelp');
-        const bankPanel = document.getElementById('bankPanel');
-        const cryptoPanel = document.getElementById('cryptoPanel');
-        const cryptoNetworkRow = document.getElementById('cryptoNetworkRow');
-        const cryptoNetworkEl = document.getElementById('cryptoNetwork');
-        const form = document.getElementById('depositForm');
+      const methodEl = document.getElementById('method');
+      const helpEl = document.getElementById('methodHelp');
+      const bankPanel = document.getElementById('bankPanel');
+      const cryptoPanel = document.getElementById('cryptoPanel');
+      const cryptoNetworkRow = document.getElementById('cryptoNetworkRow');
+      const cryptoNetworkEl = document.getElementById('cryptoNetwork');
+      const form = document.getElementById('depositForm');
 
         if (!form) {
           console.error('Deposit form not found!');
           return;
         }
 
-        function updatePanels() {
+      function updatePanels() {
           if (!methodEl) return;
-          const val = methodEl.value;
-          if (val === 'bank_transfer') {
+        const val = methodEl.value;
+        if (val === 'bank_transfer') {
             if (bankPanel) bankPanel.style.display = '';
             if (cryptoPanel) cryptoPanel.style.display = 'none';
             if (cryptoNetworkRow) cryptoNetworkRow.style.display = 'none';
             if (helpEl) helpEl.textContent = 'You selected Bank Transfer. Use the details below and include your email or reference in the memo.';
-          } else if (val === 'crypto') {
+        } else if (val === 'crypto') {
             if (bankPanel) bankPanel.style.display = 'none';
             if (cryptoPanel) cryptoPanel.style.display = '';
             if (cryptoNetworkRow) cryptoNetworkRow.style.display = '';
             if (helpEl) helpEl.textContent = 'You selected Crypto. Choose the correct network and include it in the Reference field.';
-          } else {
+        } else {
             if (bankPanel) bankPanel.style.display = 'none';
             if (cryptoPanel) cryptoPanel.style.display = 'none';
             if (cryptoNetworkRow) cryptoNetworkRow.style.display = 'none';
@@ -310,100 +310,100 @@
         }
 
         if (methodEl) {
-          methodEl.addEventListener('change', updatePanels);
-          updatePanels();
+      methodEl.addEventListener('change', updatePanels);
+      updatePanels();
         }
 
-        // Copy buttons
-        document.querySelectorAll('.copy-btn').forEach(btn => {
-          btn.addEventListener('click', () => {
-            const id = btn.getAttribute('data-copy');
-            const el = document.getElementById(id);
-            if (!el) return;
-            const text = el.textContent.trim();
-            navigator.clipboard.writeText(text).then(() => {
-              const old = btn.textContent;
-              btn.textContent = 'Copied';
-              setTimeout(() => { btn.textContent = old; }, 1200);
-            });
+      // Copy buttons
+      document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const id = btn.getAttribute('data-copy');
+          const el = document.getElementById(id);
+          if (!el) return;
+          const text = el.textContent.trim();
+          navigator.clipboard.writeText(text).then(() => {
+            const old = btn.textContent;
+            btn.textContent = 'Copied';
+            setTimeout(() => { btn.textContent = old; }, 1200);
           });
         });
+      });
 
         // Crypto address updates and QR code
-        function updateCryptoAddresses() {
+      function updateCryptoAddresses() {
           const methodEl = document.getElementById('method');
           const cryptoNetworkEl = document.getElementById('cryptoNetwork');
           const net = (cryptoNetworkEl?.value || '').trim();
-          const qrContainer = document.getElementById('qrCodeContainer');
-          const qrDisplay = document.getElementById('qrCodeDisplay');
-          let walletAddress = '';
-          let networkName = '';
-          
-          if (!qrContainer || !qrDisplay) {
-            return;
-          }
-          
-          // Show/hide address rows and get the selected wallet address
-          document.querySelectorAll('#cryptoPanel .addr-row').forEach(row => {
-            const isVisible = row.getAttribute('data-network') === net && methodEl?.value === 'crypto';
-            row.style.display = isVisible ? '' : 'none';
-            
-            if (isVisible) {
-              const codeEl = row.querySelector('code');
-              if (codeEl) {
-                walletAddress = codeEl.textContent.trim();
-                const strongEl = row.querySelector('strong');
-                if (strongEl) {
-                  networkName = strongEl.textContent.replace(':', '').trim();
-                }
-              }
-            }
-          });
-          
-          // Generate QR code if wallet address is available
-          if (walletAddress && methodEl?.value === 'crypto' && net) {
-            qrContainer.style.display = 'flex';
-            
-            // Use QR Server API for reliable QR code generation
-            const qrSize = 200;
-            const encodedAddress = encodeURIComponent(walletAddress);
-            const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodedAddress}&bgcolor=ffffff&color=0a3d62&margin=2`;
-            
-            // Clear previous QR code
-            qrDisplay.innerHTML = '';
-            
-            // Create and display QR code image
-            const qrImg = document.createElement('img');
-            qrImg.src = qrUrl;
-            qrImg.alt = `QR Code for ${networkName} wallet address`;
-            qrImg.style.width = qrSize + 'px';
-            qrImg.style.height = qrSize + 'px';
-            qrImg.style.borderRadius = '8px';
-            qrImg.style.display = 'block';
-            qrImg.onerror = function() {
-              console.error('Failed to load QR code image');
-              qrContainer.style.display = 'none';
-            };
-            qrImg.onload = function() {
-              console.log('QR code loaded successfully for:', walletAddress);
-            };
-            
-            qrDisplay.appendChild(qrImg);
-          } else {
-            qrContainer.style.display = 'none';
-          }
-        }
-
-        // Crypto address updates
-        if (cryptoNetworkEl) {
-          cryptoNetworkEl.addEventListener('change', updateCryptoAddresses);
-        }
-        if (methodEl) {
-          methodEl.addEventListener('change', updateCryptoAddresses);
+        const qrContainer = document.getElementById('qrCodeContainer');
+        const qrDisplay = document.getElementById('qrCodeDisplay');
+        let walletAddress = '';
+        let networkName = '';
+        
+        if (!qrContainer || !qrDisplay) {
+          return;
         }
         
-        // Initial call
-        updateCryptoAddresses();
+        // Show/hide address rows and get the selected wallet address
+        document.querySelectorAll('#cryptoPanel .addr-row').forEach(row => {
+            const isVisible = row.getAttribute('data-network') === net && methodEl?.value === 'crypto';
+          row.style.display = isVisible ? '' : 'none';
+          
+          if (isVisible) {
+            const codeEl = row.querySelector('code');
+            if (codeEl) {
+              walletAddress = codeEl.textContent.trim();
+              const strongEl = row.querySelector('strong');
+              if (strongEl) {
+                networkName = strongEl.textContent.replace(':', '').trim();
+              }
+            }
+          }
+        });
+        
+        // Generate QR code if wallet address is available
+          if (walletAddress && methodEl?.value === 'crypto' && net) {
+          qrContainer.style.display = 'flex';
+          
+          // Use QR Server API for reliable QR code generation
+          const qrSize = 200;
+          const encodedAddress = encodeURIComponent(walletAddress);
+          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodedAddress}&bgcolor=ffffff&color=0a3d62&margin=2`;
+          
+          // Clear previous QR code
+          qrDisplay.innerHTML = '';
+          
+          // Create and display QR code image
+          const qrImg = document.createElement('img');
+          qrImg.src = qrUrl;
+          qrImg.alt = `QR Code for ${networkName} wallet address`;
+          qrImg.style.width = qrSize + 'px';
+          qrImg.style.height = qrSize + 'px';
+          qrImg.style.borderRadius = '8px';
+          qrImg.style.display = 'block';
+          qrImg.onerror = function() {
+            console.error('Failed to load QR code image');
+            qrContainer.style.display = 'none';
+          };
+          qrImg.onload = function() {
+            console.log('QR code loaded successfully for:', walletAddress);
+          };
+          
+          qrDisplay.appendChild(qrImg);
+        } else {
+          qrContainer.style.display = 'none';
+        }
+      }
+      
+        // Crypto address updates
+        if (cryptoNetworkEl) {
+      cryptoNetworkEl.addEventListener('change', updateCryptoAddresses);
+        }
+        if (methodEl) {
+      methodEl.addEventListener('change', updateCryptoAddresses);
+        }
+      
+      // Initial call
+      updateCryptoAddresses();
 
         // Form submission handler
         form.addEventListener('submit', async (e) => {
@@ -595,9 +595,15 @@
           }
         }
 
+        // Build update data - always include all asset fields to preserve existing values
         const updateData = {
           available_balance: newBalance
         };
+        
+        // Preserve existing asset values if not being updated
+        ['btc', 'eth', 'dodge', 'usdt', 'xlm', 'xrp', 'shiba', 'ltc'].forEach(asset => {
+          updateData[asset] = parseFloat(currentProfile[asset]) || 0;
+        });
 
         // If plan is selected and user has enough balance, enroll and allocate assets
         if (plan && newBalance >= plan.monthlyAmount) {
@@ -618,8 +624,8 @@
           
           // Add allocated assets to existing holdings
           Object.keys(assetAllocation).forEach(asset => {
-            const currentQty = parseFloat(currentProfile?.[asset] || 0);
-            updateData[asset] = (currentQty || 0) + (assetAllocation[asset] || 0);
+            const currentQty = parseFloat(currentProfile[asset] || 0);
+            updateData[asset] = (currentQty || 0) + (parseFloat(assetAllocation[asset]) || 0);
           });
 
           localStorage.removeItem('selectedPlan');
@@ -630,39 +636,80 @@
           alert('Deposit successful!');
         }
 
-        // Update profile with all changes
+        // Clean and validate update data - ensure all values are valid numbers
+        const cleanUpdateData = {
+          available_balance: parseFloat(updateData.available_balance) || 0
+        };
+        
+        // Add investment plan if it exists
+        if (updateData.investment_plan) {
+          cleanUpdateData.investment_plan = updateData.investment_plan;
+        }
+        
+        // Add all asset fields with valid numbers (already set in updateData above)
+        ['btc', 'eth', 'dodge', 'usdt', 'xlm', 'xrp', 'shiba', 'ltc'].forEach(asset => {
+          const value = parseFloat(updateData[asset]);
+          cleanUpdateData[asset] = (isNaN(value) ? 0 : value);
+        });
+
+        console.log('Updating profile with:', cleanUpdateData);
+
         try {
-          const { error: updateError } = await window.supabase
+          // First try update
+          const { data: updateResult, error: updateError } = await window.supabase
             .from('profiles')
-            .update(updateData)
-            .eq('id', session.user.id);
+            .update(cleanUpdateData)
+            .eq('id', session.user.id)
+            .select()
+            .single();
 
           if (updateError) {
-            console.error('Error updating profile:', updateError);
+            console.warn('Update failed, trying upsert:', updateError.message);
             
             // If update fails, try to upsert instead (insert or update)
-            const { error: upsertError } = await window.supabase
+            const { data: upsertResult, error: upsertError } = await window.supabase
               .from('profiles')
               .upsert({
                 id: session.user.id,
-                ...updateData
+                ...cleanUpdateData
               }, {
                 onConflict: 'id'
-              });
+              })
+              .select()
+              .single();
 
             if (upsertError) {
-              console.error('Error upserting profile:', upsertError);
-              alert('Error updating balance. Please try again or refresh the page.');
-              return;
+              console.error('Upsert also failed:', upsertError);
+              
+              // Last resort: try inserting if profile truly doesn't exist
+              if (upsertError.code === 'PGRST116' || upsertError.message?.includes('No rows')) {
+                const { error: insertError } = await window.supabase
+                  .from('profiles')
+                  .insert({
+                    id: session.user.id,
+                    ...cleanUpdateData
+                  });
+                
+                if (insertError) {
+                  console.error('All update methods failed:', insertError);
+                  alert('Error updating balance. Please refresh the page and try again.');
+                  return;
+                } else {
+                  console.log('Profile inserted successfully');
+                }
+              } else {
+                alert('Error updating balance: ' + (upsertError.message || 'Unknown error') + '. Please try again.');
+                return;
+              }
             } else {
-              console.log('Profile upserted successfully');
-            }
-          } else {
-            console.log('Profile updated successfully:', updateData);
+              console.log('Profile upserted successfully:', upsertResult);
+        }
+      } else {
+            console.log('Profile updated successfully:', updateResult);
           }
         } catch (updateErr) {
           console.error('Update exception:', updateErr);
-          alert('Error updating profile. Please try again.');
+          alert('Error updating profile: ' + (updateErr.message || 'Unknown error') + '. Please try again.');
           return;
         }
         
@@ -811,10 +858,12 @@
   const SUPABASE_URL = 'https://mxbzzkwryfifpzaotrhl.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14Ynp6a3dyeWZpZnB6YW90cmhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NjQ4MzEsImV4cCI6MjA3ODU0MDgzMX0.ot10C7-pxlkoizmk5bhc2Oe_zyJ4PoGWdTrS7P8Xm9I';
   window.supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-</script>
+  </script>
 <script src="page-transitions.js"></script>
 </body>
 </html>
+
+
 
 
 
