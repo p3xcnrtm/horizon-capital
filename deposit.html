@@ -643,11 +643,8 @@
           });
 
           localStorage.removeItem('selectedPlan');
-          alert(`Deposit successful! You have been automatically enrolled in the ${plan.name} plan.\n\nYour investment of $${investmentAmount.toLocaleString()} has been allocated to your portfolio.`);
         } else if (plan) {
-          alert(`Deposit successful! However, you need at least $${plan.monthlyAmount.toLocaleString()} to enroll in the ${plan.name} plan. Your current balance is $${newBalance.toLocaleString()}. Please deposit more funds.`);
-        } else {
-          alert('Deposit successful!');
+          // Plan selected but not enough balance - still deposit the amount
         }
 
         // Clean and validate update data - ensure all values are valid numbers
@@ -714,10 +711,15 @@
         try {
           // Update only the fields that definitely exist (profits + assets)
           // Skip investment_plan for now to avoid column errors
-          let { error: updateError } = await window.supabase
+          console.log('Attempting to update profile with:', cleanUpdateData);
+          let { data: updateResult, error: updateError } = await window.supabase
             .from('profiles')
             .update(cleanUpdateData)
-            .eq('id', session.user.id);
+            .eq('id', session.user.id)
+            .select();
+          
+          console.log('Update result:', updateResult);
+          console.log('Update error:', updateError);
           
           // If update succeeded, try to update investment_plan separately (optional)
           if (!updateError && hasInvestmentPlan) {
@@ -803,11 +805,15 @@
                 return;
               }
             } else {
-              console.log('Profile upserted successfully');
+              console.log('Profile upserted successfully:', upsertResult);
+              updateResult = upsertResult;
             }
-          } else {
+          }
+          
+          // Check if update was successful
+          if (updateResult && updateResult.length > 0) {
             console.log('Profile updated successfully');
-            console.log('Updated data:', cleanUpdateData);
+            console.log('Updated profile data:', updateResult[0]);
             
             // Verify the update was successful by fetching the profile
             const { data: verifyUpdate, error: verifyUpdateError } = await window.supabase
@@ -818,7 +824,7 @@
             
             if (verifyUpdateError) {
               console.warn('Could not verify update:', verifyUpdateError);
-      } else {
+            } else {
               console.log('Update verified - Profile data:', verifyUpdate);
               console.log('Balance:', verifyUpdate.profits);
               console.log('Assets:', {
@@ -832,7 +838,22 @@
                 ltc: verifyUpdate.ltc
               });
             }
+          } else {
+            console.error('Update returned no rows - profile may not exist or update failed');
+            alert('Error: Could not update profile. Please try again or contact support.');
+            return;
           }
+          
+          // Show success message after update succeeds
+          if (plan && newBalance >= plan.monthlyAmount) {
+            const investmentAmount = plan.monthlyAmount;
+            alert(`Deposit successful! You have been automatically enrolled in the ${plan.name} plan.\n\nYour investment of $${investmentAmount.toLocaleString()} has been allocated to your portfolio.`);
+          } else if (plan) {
+            alert(`Deposit successful! However, you need at least $${plan.monthlyAmount.toLocaleString()} to enroll in the ${plan.name} plan. Your current balance is $${newBalance.toLocaleString()}. Please deposit more funds.`);
+          } else {
+            alert('Deposit successful!');
+          }
+          
         } catch (updateErr) {
           console.error('Update exception:', updateErr);
           console.error('Exception stack:', updateErr.stack);
