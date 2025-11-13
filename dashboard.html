@@ -521,6 +521,7 @@
           </div>
         </div>
 
+
         <!-- Recent Activity -->
         <div class="card">
           <div class="card-header">
@@ -647,34 +648,98 @@
  // ---- After we know we’re authenticated ----
 async function proceed(session) {
   try {
-    // Load profile (don’t block UI forever if it fails)
+    // Load profile (don't block UI forever if it fails)
     try {
-    const { data, error } = await supabase
-  .from('profiles')
-  .select('full_name,username,profits,available_balance,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc,last_login,trn_date')
-  .eq('id', session.user.id)
-  .single();
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('full_name,username,profits,available_balance,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc,last_login,trn_date')
+        .eq('id', session.user.id)
+        .single();
 
+      if (error) {
+        // If profile doesn't exist (PGRST116), create it
+        if (error.code === 'PGRST116') {
+          console.log('Profile not found, creating new profile...');
+          const { data: newProfile, error: createError } = await supabase
+            .from('profiles')
+            .insert({
+              id: session.user.id,
+              available_balance: 0,
+              btc: 0,
+              eth: 0,
+              dodge: 0,
+              usdt: 0,
+              xlm: 0,
+              xrp: 0,
+              shiba: 0,
+              ltc: 0
+            })
+            .select()
+            .single();
 
+          if (createError) {
+            console.error('Error creating profile:', createError);
+            profile = {
+              available_balance: 0,
+              btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0
+            };
+          } else {
+            profile = newProfile || {};
+            console.log('New profile created successfully');
+          }
+        } else {
+          console.warn('Profile load failed:', error.message, error.code);
+          // Use empty profile with defaults
+          profile = {
+            available_balance: 0,
+            btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0
+          };
+        }
+      } else {
+        profile = data || {};
+        console.log('Profile loaded successfully:', {
+          balance: profile?.available_balance,
+          btc: profile?.btc,
+          eth: profile?.eth,
+          dodge: profile?.dodge,
+          usdt: profile?.usdt,
+          xlm: profile?.xlm,
+          xrp: profile?.xrp,
+          shiba: profile?.shiba,
+          ltc: profile?.ltc
+        });
+      }
 
-      if (error) console.warn('Profile load failed:', error.message);
-      profile = data || {};
-// Debug: see what we got
-console.log('Profile fetched:', profile, 'error:', error?.message);
+      // Ensure profile has all required fields with defaults
+      if (!profile.available_balance && profile.available_balance !== 0) {
+        profile.available_balance = 0;
+      }
+      if (!profile.btc && profile.btc !== 0) profile.btc = 0;
+      if (!profile.eth && profile.eth !== 0) profile.eth = 0;
+      if (!profile.dodge && profile.dodge !== 0) profile.dodge = 0;
+      if (!profile.usdt && profile.usdt !== 0) profile.usdt = 0;
+      if (!profile.xlm && profile.xlm !== 0) profile.xlm = 0;
+      if (!profile.xrp && profile.xrp !== 0) profile.xrp = 0;
+      if (!profile.shiba && profile.shiba !== 0) profile.shiba = 0;
+      if (!profile.ltc && profile.ltc !== 0) profile.ltc = 0;
 
-const balEl = document.getElementById('balance');
-if (balEl) {
-  const raw = profile?.available_balance;
-  const profits = (typeof raw === 'number' && Number.isFinite(raw))
-    ? raw
-    : (Number.parseFloat(raw ?? 0) || 0);
-  balEl.textContent = fmtUSD(profits);
-}
-
+      // Update balance display immediately
+      const balEl = document.getElementById('balance');
+      if (balEl) {
+        const raw = profile?.available_balance;
+        const balance = (typeof raw === 'number' && Number.isFinite(raw))
+          ? raw
+          : (Number.parseFloat(raw ?? 0) || 0);
+        balEl.textContent = fmtUSD(balance);
+      }
 
     } catch (e) {
-      console.warn('Profile exception:', e);
-      profile = {};
+      console.error('Profile exception:', e);
+      // Use default empty profile
+      profile = {
+        available_balance: 0,
+        btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0
+      };
     }
 
     // ✅ Use session to help hydrate header if DB name missing
@@ -724,6 +789,7 @@ function hydrateHeader(p, session) {
     };
     if (window.feather) feather.replace();
 
+
     // recent activity
     const activityList = $('#recentActivity');
     if (activityList) {
@@ -759,9 +825,22 @@ function hydrateHeader(p, session) {
     const assetCountEl = $('#assetCount');
     let portfolioChart = null;
 
+    // Build assets from profile - this includes all assets from deposit
     const assets = buildAssetsFromProfile(p);
     currentAssets = assets;
     currentRender = render;
+    
+    // Log assets for debugging
+    const activeAssets = assets.filter(a => (a.quantity || 0) > 0);
+    console.log('Assets loaded from profile:', activeAssets.length, 'active assets');
+    if (activeAssets.length > 0) {
+      console.log('Asset details:', activeAssets.map(a => `${a.symbol}: ${a.quantity}`));
+    }
+    
+    // Update asset count immediately
+    if (assetCountEl) {
+      assetCountEl.textContent = `${activeAssets.length} asset${activeAssets.length !== 1 ? 's' : ''}`;
+    }
 
     async function fetchLivePrices() {
       try {
@@ -1178,6 +1257,4 @@ function render(profileData) {
 <script src="page-transitions.js"></script>
 </body>
 </html>
-
-
 
