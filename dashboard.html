@@ -415,7 +415,7 @@
       
       <div class="stat-card success">
         <div class="stat-label">
-          <i data-feather="wallet" style="width: 16px; height: 16px;"></i>
+          <i data-feather="dollar-sign" style="width: 16px; height: 16px;"></i>
           Available Balance
         </div>
         <div class="stat-value" id="balance">$0.00</div>
@@ -657,9 +657,10 @@ async function proceed(session) {
     try {
       // Try to fetch profile - use minimal required fields first
       // Note: Using 'profits' instead of 'available_balance' to match database schema
+      // Note: investment_plan column may not exist, so we fetch it separately if needed
       const { data, error } = await supabase
         .from('profiles')
-        .select('profits,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
+        .select('profits,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
         .eq('id', session.user.id)
         .single();
 
@@ -690,7 +691,7 @@ async function proceed(session) {
               // Profile might have been created by another process, try fetching again
               const { data: retryData } = await supabase
                 .from('profiles')
-                .select('profits,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
+                .select('profits,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
                 .eq('id', session.user.id)
                 .single();
               
@@ -713,6 +714,22 @@ async function proceed(session) {
         // Successfully loaded profile
         profile = data;
         console.log('Profile loaded successfully');
+        
+        // Try to fetch investment_plan separately (optional - column may not exist)
+        try {
+          const { data: planData } = await supabase
+            .from('profiles')
+            .select('investment_plan')
+            .eq('id', session.user.id)
+            .single();
+          
+          if (planData && planData.investment_plan) {
+            profile.investment_plan = planData.investment_plan;
+          }
+        } catch (planErr) {
+          // investment_plan column doesn't exist - that's okay
+          console.log('investment_plan column not available (this is normal)');
+        }
       }
 
       // Ensure all required fields have defaults
