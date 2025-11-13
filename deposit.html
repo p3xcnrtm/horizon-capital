@@ -637,10 +637,15 @@
           });
           
           // Add allocated assets to existing holdings
+          console.log('Asset allocation from plan:', assetAllocation);
           Object.keys(assetAllocation).forEach(asset => {
             const currentQty = parseFloat(currentProfile[asset] || 0);
-            updateData[asset] = (currentQty || 0) + (parseFloat(assetAllocation[asset]) || 0);
+            const allocatedQty = parseFloat(assetAllocation[asset]) || 0;
+            const newQty = (currentQty || 0) + allocatedQty;
+            updateData[asset] = newQty;
+            console.log(`Asset ${asset}: current=${currentQty}, allocated=${allocatedQty}, new=${newQty}`);
           });
+          console.log('UpdateData after asset allocation:', updateData);
 
           localStorage.removeItem('selectedPlan');
         } else if (plan) {
@@ -654,10 +659,13 @@
         };
         
         // Add all asset fields with valid numbers (already set in updateData above)
+        console.log('Building cleanUpdateData from updateData:', updateData);
         ['btc', 'eth', 'dodge', 'usdt', 'xlm', 'xrp', 'shiba', 'ltc'].forEach(asset => {
           const value = parseFloat(updateData[asset]);
           cleanUpdateData[asset] = (isNaN(value) ? 0 : value);
+          console.log(`cleanUpdateData[${asset}] = ${cleanUpdateData[asset]}`);
         });
+        console.log('Final cleanUpdateData:', cleanUpdateData);
         
         // Try to add investment_plan if it exists (but don't fail if column doesn't exist)
         // We'll handle this separately to avoid errors
@@ -850,7 +858,7 @@
             alert(`Deposit successful! You have been automatically enrolled in the ${plan.name} plan.\n\nYour investment of $${investmentAmount.toLocaleString()} has been allocated to your portfolio.`);
           } else if (plan) {
             alert(`Deposit successful! However, you need at least $${plan.monthlyAmount.toLocaleString()} to enroll in the ${plan.name} plan. Your current balance is $${newBalance.toLocaleString()}. Please deposit more funds.`);
-          } else {
+        } else {
             alert('Deposit successful!');
           }
           
