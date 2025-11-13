@@ -508,14 +508,14 @@
 
         // Get current profile - fetch fresh data with robust error handling
         let currentProfile = {
-          available_balance: 0,
+          profits: 0,
           btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0
         };
 
         try {
           const { data: profileData, error: fetchError } = await window.supabase
             .from('profiles')
-            .select('available_balance,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
+            .select('profits,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
             .eq('id', session.user.id)
             .single();
 
@@ -528,7 +528,7 @@
                   .from('profiles')
                   .insert({
                     id: session.user.id,
-                    available_balance: 0,
+                    profits: 0,
                     btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0
                   })
                   .select()
@@ -539,7 +539,7 @@
                   // Profile might have been created by another process, try fetching again
                   const { data: retryData } = await window.supabase
                     .from('profiles')
-                    .select('available_balance,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
+                    .select('profits,investment_plan,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
                     .eq('id', session.user.id)
                     .single();
                   
@@ -569,8 +569,8 @@
         }
         
         // Ensure all fields have default values (handle null/undefined)
-        if (currentProfile.available_balance === null || currentProfile.available_balance === undefined) {
-          currentProfile.available_balance = 0;
+        if (currentProfile.profits === null || currentProfile.profits === undefined) {
+          currentProfile.profits = 0;
         }
         if (currentProfile.btc === null || currentProfile.btc === undefined) currentProfile.btc = 0;
         if (currentProfile.eth === null || currentProfile.eth === undefined) currentProfile.eth = 0;
@@ -581,7 +581,7 @@
         if (currentProfile.shiba === null || currentProfile.shiba === undefined) currentProfile.shiba = 0;
         if (currentProfile.ltc === null || currentProfile.ltc === undefined) currentProfile.ltc = 0;
 
-        const currentBalance = parseFloat(currentProfile?.available_balance || 0);
+        const currentBalance = parseFloat(currentProfile?.profits || 0);
         const newBalance = currentBalance + amount;
 
       // Check if there's a selected plan to enroll
@@ -597,7 +597,7 @@
 
         // Build update data - always include all asset fields to preserve existing values
         const updateData = {
-          available_balance: newBalance
+          profits: newBalance
         };
         
         // Preserve existing asset values if not being updated
@@ -613,7 +613,7 @@
           // Calculate asset allocation
           const assetAllocation = await calculateAssetAllocation(plan.type, investmentAmount);
           
-          updateData.available_balance = remainingBalance;
+          updateData.profits = remainingBalance;
           updateData.investment_plan = JSON.stringify({
             type: plan.type,
             name: plan.name,
@@ -638,7 +638,7 @@
 
         // Clean and validate update data - ensure all values are valid numbers
         const cleanUpdateData = {
-          available_balance: parseFloat(updateData.available_balance) || 0
+          profits: parseFloat(updateData.profits) || 0
         };
         
         // Add investment plan if it exists
@@ -661,7 +661,7 @@
         console.log('Updating profile with:', cleanUpdateData);
         console.log('User ID:', session.user.id);
         console.log('Clean update data type check:', {
-          available_balance: typeof cleanUpdateData.available_balance,
+          profits: typeof cleanUpdateData.profits,
           btc: typeof cleanUpdateData.btc,
           eth: typeof cleanUpdateData.eth
         });
@@ -681,7 +681,7 @@
               .from('profiles')
               .insert({
                 id: session.user.id,
-                available_balance: 0,
+                profits: 0,
                 btc: 0, eth: 0, dodge: 0, usdt: 0, xlm: 0, xrp: 0, shiba: 0, ltc: 0
               });
             
@@ -923,10 +923,4 @@
 <script src="page-transitions.js"></script>
 </body>
 </html>
-
-
-
-
-
-
 
