@@ -927,16 +927,31 @@ function hydrateHeader(p, session) {
             const basePrice = coin.rate || 0;
             const baseChange = (coin.delta?.day ?? 0) * 100;
             
-            // Apply risk-based price movements if plan is active
+            // Apply realistic market volatility based on investment plan type
+            // Conservative: Lower volatility (closer to actual market, 0.8x to 1.2x)
+            // Aggressive: Higher volatility (more price swings, 1.2x to 1.8x)
             if (investmentPlan?.status === 'active') {
-              const riskMultiplier = investmentPlan.type === 'aggressive' ? 1.5 : 0.7;
-              const volatilityFactor = investmentPlan.type === 'aggressive' ? 0.15 : 0.05;
-              
-              // Add simulated volatility based on plan risk
-              const randomChange = (Math.random() - 0.5) * 2 * volatilityFactor * 100;
-              a.price = basePrice * (1 + (baseChange / 100) * riskMultiplier + randomChange / 100);
-              a.change = baseChange * riskMultiplier + randomChange;
+              if (investmentPlan.type === 'aggressive') {
+                // Aggressive plan: Higher volatility (1.2x to 1.8x market movements)
+                // Simulates more volatile assets/strategies like altcoins, leverage, etc.
+                const volatilityMultiplier = 1.2 + (Math.random() * 0.6); // 1.2x to 1.8x
+                const marketChange = baseChange * volatilityMultiplier;
+                // Add small random fluctuations (±2%) to simulate market noise
+                const randomFluctuation = (Math.random() - 0.5) * 4;
+                a.price = basePrice * (1 + (marketChange + randomFluctuation) / 100);
+                a.change = marketChange + randomFluctuation;
+              } else {
+                // Conservative plan: Lower volatility (0.8x to 1.2x market movements)
+                // Simulates more stable, diversified portfolio (BTC, ETH, stablecoins)
+                const volatilityMultiplier = 0.8 + (Math.random() * 0.4); // 0.8x to 1.2x
+                const marketChange = baseChange * volatilityMultiplier;
+                // Add minimal random fluctuations (±0.5%) for realistic market noise
+                const randomFluctuation = (Math.random() - 0.5) * 1;
+                a.price = basePrice * (1 + (marketChange + randomFluctuation) / 100);
+                a.change = marketChange + randomFluctuation;
+              }
             } else {
+              // No active plan: Use exact market prices (no simulation)
               a.price = basePrice;
               a.change = baseChange;
             }
@@ -953,68 +968,31 @@ function hydrateHeader(p, session) {
       }
     }
     
-    // Calculate profits from portfolio and update available_balance
+    // Calculate portfolio value and track performance
+    // This function calculates the current portfolio value based on live market prices
+    // The portfolio value updates in real-time as crypto prices change
     async function updatePortfolioProfits(assetsArray, plan) {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.user) return;
         
-        // Calculate total portfolio value
+        // Calculate total current portfolio value (sum of all asset values at current market prices)
         let totalPortfolioValue = 0;
         assetsArray.forEach(asset => {
-          totalPortfolioValue += (asset.quantity || 0) * (asset.price || 0);
+          const quantity = parseFloat(asset.quantity) || 0;
+          const price = parseFloat(asset.price) || 0;
+          const assetValue = quantity * price;
+          totalPortfolioValue += assetValue;
         });
         
-        // Get current profits
-        const { data: currentProfile } = await supabase
-          .from('profiles')
-          .select('profits')
-          .eq('id', session.user.id)
-          .single();
+        // Note: We don't update the balance here anymore
+        // The balance (profits) represents available cash, not portfolio value
+        // Portfolio value is calculated dynamically from asset prices
+        // Profit/Loss is shown in the stats as: current portfolio value - initial investment
         
-        const currentBalance = parseFloat(currentProfile?.profits || 0);
-        
-        // Calculate profit (portfolio value - initial investment)
-        // For simplicity, we'll track profit as the difference between current portfolio value and a base
-        // In a real system, you'd track initial investment amounts
-        
-        // Calculate expected return based on plan
-        let expectedReturnRate = 0;
-        if (plan?.status === 'active') {
-          if (plan.type === 'conservative') {
-            expectedReturnRate = 0.10 / 12; // ~10% annual / 12 months = monthly
-          } else if (plan.type === 'aggressive') {
-            expectedReturnRate = 0.25 / 30; // ~25% annual / 30 days = daily
-          }
-        }
-        
-        // Calculate time since plan start
-        let timeMultiplier = 1;
-        if (plan?.startDate) {
-          const startDate = new Date(plan.startDate);
-          const now = new Date();
-          const daysDiff = (now - startDate) / (1000 * 60 * 60 * 24);
-          
-          if (plan.type === 'conservative') {
-            timeMultiplier = daysDiff / 30; // Monthly compounding
-          } else {
-            timeMultiplier = daysDiff; // Daily compounding
-          }
-        }
-        
-        // Calculate profit based on portfolio performance
-        const portfolioProfit = totalPortfolioValue * expectedReturnRate * Math.max(0, timeMultiplier);
-        const newAvailableBalance = currentBalance + portfolioProfit;
-        
-        // Update profits in database (only if significant change to avoid too many updates)
-        if (Math.abs(newAvailableBalance - currentBalance) > 0.01) {
-          await supabase
-            .from('profiles')
-            .update({ profits: newAvailableBalance })
-            .eq('id', session.user.id);
-        }
+        console.log('Portfolio value calculated:', totalPortfolioValue);
       } catch (error) {
-        console.warn('Error updating portfolio profits:', error);
+        console.warn('Error calculating portfolio value:', error);
       }
     }
 
@@ -1103,9 +1081,15 @@ function render(profileData) {
     }
 
     function updateStats(totalInvestments, balance) {
+      // Realistic portfolio calculation:
+      // - Total Portfolio Value = Current Portfolio Value (from assets) + Available Balance (cash)
+      // - Total Investments = Current market value of all assets in portfolio
+      // - Profit/Loss = Current Portfolio Value - Initial Investment Amount
+      // - Return % = (Profit / Initial Investment) * 100
+      
       const totalPortfolio = totalInvestments + balance;
       
-      // Calculate profit from portfolio
+      // Get investment plan to calculate initial investment
       let investmentPlan = null;
       try {
         if (p?.investment_plan) {
@@ -1117,34 +1101,62 @@ function render(profileData) {
         console.warn('Error parsing investment plan:', e);
       }
       
-      // Calculate profit based on portfolio value and plan
+      // Calculate profit/loss: current portfolio value - initial investment
       let profit = 0;
-      if (investmentPlan?.status === 'active' && totalInvestments > 0) {
-        const planAmount = investmentPlan.monthlyAmount || 0;
-        profit = totalInvestments - planAmount; // Profit = current value - initial investment
-      } else {
-        profit = totalInvestments; // If no plan, profit is just the portfolio value
-      }
+      let profitPct = 0;
+      let initialInvestment = 0;
       
-      const profitPct = totalInvestments > 0 && investmentPlan?.monthlyAmount 
-        ? ((profit / investmentPlan.monthlyAmount) * 100) 
-        : 0;
+      if (investmentPlan?.status === 'active' && investmentPlan?.monthlyAmount) {
+        initialInvestment = parseFloat(investmentPlan.monthlyAmount) || 0;
+        
+        // Profit = current portfolio value - what was initially invested
+        profit = totalInvestments - initialInvestment;
+        
+        // Calculate return percentage: (profit / initial investment) * 100
+        if (initialInvestment > 0) {
+          profitPct = (profit / initialInvestment) * 100;
+        }
+      } else if (totalInvestments > 0) {
+        // If no active plan but has investments, show portfolio value as profit
+        // (assuming they were purchased at some point)
+        profit = totalInvestments;
+        profitPct = 0; // Can't calculate % without knowing initial cost
+      }
 
+      // Update UI elements
       $('#totalPortfolio').textContent = fmtUSD(totalPortfolio);
       $('#totalInvestments').textContent = fmtUSD(totalInvestments);
-      $('#totalReturn').textContent = `${profit>=0?'+':''}${fmtUSD(profit).replace('$', '')}`;
+      
+      // Format profit with + or - sign
+      const profitFormatted = profit >= 0 
+        ? `+${fmtUSD(profit).replace('$', '')}` 
+        : fmtUSD(profit).replace('$', '');
+      $('#totalReturn').textContent = profitFormatted;
 
+      // Update profit change indicator
       const wrap = $('#totalReturn')?.parentElement?.querySelector('.stat-change');
       if (wrap) { 
-        wrap.classList.toggle('positive', profit>=0); 
-        wrap.classList.toggle('negative', profit<0);
+        wrap.classList.toggle('positive', profit >= 0); 
+        wrap.classList.toggle('negative', profit < 0);
         const profitText = wrap.querySelector('span');
         if (profitText) {
-          profitText.textContent = profitPct !== 0 
-            ? `${profitPct>=0?'+':''}${profitPct.toFixed(2)}% return`
-            : 'From portfolio';
+          if (profitPct !== 0 && initialInvestment > 0) {
+            profitText.textContent = `${profitPct >= 0 ? '+' : ''}${profitPct.toFixed(2)}% return`;
+          } else if (totalInvestments > 0) {
+            profitText.textContent = 'Portfolio value';
+          } else {
+            profitText.textContent = 'From portfolio';
+          }
         }
       }
+      
+      console.log('Stats updated:', {
+        totalPortfolio: totalPortfolio,
+        totalInvestments: totalInvestments,
+        profit: profit,
+        profitPct: profitPct,
+        initialInvestment: initialInvestment
+      });
     }
 
     function updateChart(active) {
