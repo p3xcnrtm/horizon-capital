@@ -6,7 +6,6 @@
   <title>Deposit | Horizon Capital</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/feather-icons"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <link rel="stylesheet" href="shared-styles.css">
   <style>
     body {
@@ -123,10 +122,16 @@
       border-radius: 10px;
       border: 1px solid #e2e8f0;
     }
-    .qr-code-container canvas {
+    .qr-code-container #qrCodeDisplay {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .qr-code-container #qrCodeDisplay img {
       border-radius: 8px;
       padding: 8px;
       background: #fff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     .qr-code-label {
       margin-top: 12px;
@@ -253,7 +258,7 @@
           </div>
           <!-- QR Code Container -->
           <div id="qrCodeContainer" class="qr-code-container" style="display:none;">
-            <canvas id="qrCodeCanvas" width="200" height="200"></canvas>
+            <div id="qrCodeDisplay"></div>
             <div class="qr-code-label">Scan to copy wallet address</div>
           </div>
         </div>
@@ -331,33 +336,69 @@
         }
       });
       
+      /**
+       * WALLET ADDRESS CONFIGURATION
+       * 
+       * To update wallet addresses in the future, simply modify the 'address' values below.
+       * The QR code and displayed addresses will automatically update.
+       * 
+       * Example: To change the TRC20 address, update:
+       * address: 'TQTuusHXY85QRijQK93t6oM8p4bpx1b22w'
+       * to your new address.
+       */
+      const walletAddresses = {
+        'TRC20': {
+          id: 'usdtTrc20',
+          label: 'USDT (TRC20)',
+          address: 'TQTuusHXY85QRijQK93t6oM8p4bpx1b22w' // Update this address as needed
+        },
+        'BTC': {
+          id: 'btcSegwit',
+          label: 'BTC (SegWit)',
+          address: 'bc1qexamplebtcaddress000000000' // Update this address as needed
+        },
+        'ERC20': {
+          id: 'ethErc20',
+          label: 'ETH (ERC20)',
+          address: '0x1234567890abcdef1234567890abcdef12345678' // Update this address as needed
+        }
+      };
+
+      // Function to update wallet addresses in the DOM (for dynamic updates)
+      function updateWalletAddressesInDOM() {
+        Object.keys(walletAddresses).forEach(network => {
+          const config = walletAddresses[network];
+          const codeEl = document.getElementById(config.id);
+          if (codeEl) {
+            codeEl.textContent = config.address;
+          }
+        });
+      }
+
       // Show only selected crypto address and generate QR code
       function updateCryptoAddresses() {
         const net = (cryptoNetworkEl.value || '').trim();
         const qrContainer = document.getElementById('qrCodeContainer');
-        const qrCanvas = document.getElementById('qrCodeCanvas');
+        const qrDisplay = document.getElementById('qrCodeDisplay');
         let walletAddress = '';
         let networkName = '';
         
-        // Debug logging
-        console.log('updateCryptoAddresses called:', { net, method: methodEl.value });
-        
-        if (!qrContainer || !qrCanvas) {
-          console.error('QR code container or canvas not found');
+        if (!qrContainer || !qrDisplay) {
           return;
         }
         
+        // Update wallet addresses in DOM first (in case they changed)
+        updateWalletAddressesInDOM();
+        
+        // Show/hide address rows and get the selected wallet address
         document.querySelectorAll('#cryptoPanel .addr-row').forEach(row => {
           const isVisible = row.getAttribute('data-network') === net && methodEl.value === 'crypto';
           row.style.display = isVisible ? '' : 'none';
           
           if (isVisible) {
-            // Get the wallet address from the code element
             const codeEl = row.querySelector('code');
             if (codeEl) {
               walletAddress = codeEl.textContent.trim();
-              console.log('Found wallet address:', walletAddress);
-              // Get network name from the row text
               const strongEl = row.querySelector('strong');
               if (strongEl) {
                 networkName = strongEl.textContent.replace(':', '').trim();
@@ -368,61 +409,43 @@
         
         // Generate QR code if wallet address is available
         if (walletAddress && methodEl.value === 'crypto' && net) {
-          console.log('Attempting to generate QR code...');
-          
-          // Check if QRCode library is loaded
-          if (typeof QRCode === 'undefined') {
-            console.warn('QRCode library not loaded, retrying...');
-            setTimeout(updateCryptoAddresses, 200);
-            return;
-          }
-          
-          console.log('QRCode library is available');
           qrContainer.style.display = 'flex';
           
-          // Clear canvas before generating new QR code
-          if (qrCanvas.width && qrCanvas.height) {
-            const ctx = qrCanvas.getContext('2d');
-            ctx.clearRect(0, 0, qrCanvas.width, qrCanvas.height);
-          }
+          // Use QR Server API for reliable QR code generation
+          const qrSize = 200;
+          const encodedAddress = encodeURIComponent(walletAddress);
+          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodedAddress}&bgcolor=ffffff&color=0a3d62&margin=2`;
           
-          try {
-            QRCode.toCanvas(qrCanvas, walletAddress, {
-              width: 200,
-              margin: 2,
-              color: {
-                dark: '#0a3d62',
-                light: '#ffffff'
-              }
-            }, function (error) {
-              if (error) {
-                console.error('QR code generation error:', error);
-                qrContainer.style.display = 'none';
-              } else {
-                console.log('QR code generated successfully for:', walletAddress);
-              }
-            });
-          } catch (error) {
-            console.error('Error generating QR code:', error);
+          // Clear previous QR code
+          qrDisplay.innerHTML = '';
+          
+          // Create and display QR code image
+          const qrImg = document.createElement('img');
+          qrImg.src = qrUrl;
+          qrImg.alt = `QR Code for ${networkName} wallet address`;
+          qrImg.style.width = qrSize + 'px';
+          qrImg.style.height = qrSize + 'px';
+          qrImg.style.borderRadius = '8px';
+          qrImg.style.display = 'block';
+          qrImg.onerror = function() {
+            console.error('Failed to load QR code image');
             qrContainer.style.display = 'none';
-          }
+          };
+          qrImg.onload = function() {
+            console.log('QR code loaded successfully for:', walletAddress);
+          };
+          
+          qrDisplay.appendChild(qrImg);
         } else {
-          console.log('QR code conditions not met:', { walletAddress: !!walletAddress, method: methodEl.value, net: !!net });
           qrContainer.style.display = 'none';
         }
       }
+      
       cryptoNetworkEl.addEventListener('change', updateCryptoAddresses);
       methodEl.addEventListener('change', updateCryptoAddresses);
       
-      // Wait for QRCode library to load before initial call
-      function waitForQRCode() {
-        if (typeof QRCode !== 'undefined') {
-          updateCryptoAddresses();
-        } else {
-          setTimeout(waitForQRCode, 100);
-        }
-      }
-      waitForQRCode();
+      // Initial call
+      updateCryptoAddresses();
     })();
 
     function handleDeposit(event) {
@@ -541,3 +564,4 @@
 <script src="page-transitions.js"></script>
 </body>
 </html>
+
