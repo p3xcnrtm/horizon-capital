@@ -728,6 +728,19 @@ async function proceed(session) {
       if (profile.shiba === null || profile.shiba === undefined) profile.shiba = 0;
       if (profile.ltc === null || profile.ltc === undefined) profile.ltc = 0;
 
+      // Log profile data for debugging
+      console.log('Profile data loaded:', {
+        profits: profile.profits,
+        btc: profile.btc,
+        eth: profile.eth,
+        dodge: profile.dodge,
+        usdt: profile.usdt,
+        xlm: profile.xlm,
+        xrp: profile.xrp,
+        shiba: profile.shiba,
+        ltc: profile.ltc
+      });
+
       // Update balance display immediately
       const balEl = document.getElementById('balance');
       if (balEl) {
@@ -735,7 +748,10 @@ async function proceed(session) {
         const balance = (typeof raw === 'number' && Number.isFinite(raw))
           ? raw
           : (Number.parseFloat(raw ?? 0) || 0);
+        console.log('Setting balance display to:', balance);
         balEl.textContent = fmtUSD(balance);
+      } else {
+        console.warn('Balance element not found!');
       }
 
     } catch (e) {
@@ -831,6 +847,7 @@ function hydrateHeader(p, session) {
     let portfolioChart = null;
 
     // Build assets from profile - this includes all assets from deposit
+    console.log('Building assets from profile:', p);
     const assets = buildAssetsFromProfile(p);
     currentAssets = assets;
     currentRender = render;
@@ -838,8 +855,20 @@ function hydrateHeader(p, session) {
     // Log assets for debugging
     const activeAssets = assets.filter(a => (a.quantity || 0) > 0);
     console.log('Assets loaded from profile:', activeAssets.length, 'active assets');
+    console.log('All assets:', assets.map(a => `${a.symbol}: ${a.quantity}`));
     if (activeAssets.length > 0) {
-      console.log('Asset details:', activeAssets.map(a => `${a.symbol}: ${a.quantity}`));
+      console.log('Active asset details:', activeAssets.map(a => `${a.symbol}: ${a.quantity}`));
+    } else {
+      console.warn('No active assets found! Profile asset values:', {
+        btc: p?.btc,
+        eth: p?.eth,
+        dodge: p?.dodge,
+        usdt: p?.usdt,
+        xlm: p?.xlm,
+        xrp: p?.xrp,
+        shiba: p?.shiba,
+        ltc: p?.ltc
+      });
     }
     
     // Update asset count immediately
@@ -970,7 +999,7 @@ function hydrateHeader(p, session) {
     }
 
 function render(profileData) {
-   console.log('render() running');
+   console.log('render() running with profileData:', profileData);
   // Use profileData parameter if provided, otherwise fall back to p
   const profileForRender = profileData || p;
   const raw = profileForRender?.profits;
@@ -978,11 +1007,21 @@ function render(profileData) {
     ? raw
     : (Number.parseFloat(raw ?? 0) || 0);
 
+  console.log('Render - Balance value:', balance);
   const balanceEl = document.querySelector('#balance');
-  if (balanceEl) balanceEl.textContent = fmtUSD(balance);
+  if (balanceEl) {
+    balanceEl.textContent = fmtUSD(balance);
+    console.log('Balance element updated');
+  } else {
+    console.warn('Balance element (#balance) not found in DOM!');
+  }
 
       const tbody = $('#assets-table');
-      if (!tbody) return;
+      if (!tbody) {
+        console.warn('Assets table (#assets-table) not found in DOM!');
+        return;
+      }
+      console.log('Rendering assets table with', currentAssets.length, 'assets');
       tbody.innerHTML = '';
 
       // Use currentAssets if available, otherwise fall back to local assets
@@ -1109,6 +1148,11 @@ function render(profileData) {
     }
 
     // initial + interval refresh
+    // Render immediately with current data (even if prices are 0)
+    console.log('Calling initial render...');
+    render();
+    
+    // Then fetch live prices and update
     fetchLivePrices();
     setInterval(fetchLivePrices, 60000);
   }
