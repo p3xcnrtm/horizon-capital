@@ -802,11 +802,36 @@
                 alert('Error updating balance: ' + errorMsg + errorDetails + errorHint + '\n\nPlease check the browser console (F12) for more details.');
                 return;
               }
-        } else {
+            } else {
               console.log('Profile upserted successfully');
-        }
-      } else {
+            }
+          } else {
             console.log('Profile updated successfully');
+            console.log('Updated data:', cleanUpdateData);
+            
+            // Verify the update was successful by fetching the profile
+            const { data: verifyUpdate, error: verifyUpdateError } = await window.supabase
+              .from('profiles')
+              .select('profits,btc,eth,dodge,usdt,xlm,xrp,shiba,ltc')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (verifyUpdateError) {
+              console.warn('Could not verify update:', verifyUpdateError);
+      } else {
+              console.log('Update verified - Profile data:', verifyUpdate);
+              console.log('Balance:', verifyUpdate.profits);
+              console.log('Assets:', {
+                btc: verifyUpdate.btc,
+                eth: verifyUpdate.eth,
+                dodge: verifyUpdate.dodge,
+                usdt: verifyUpdate.usdt,
+                xlm: verifyUpdate.xlm,
+                xrp: verifyUpdate.xrp,
+                shiba: verifyUpdate.shiba,
+                ltc: verifyUpdate.ltc
+              });
+            }
           }
         } catch (updateErr) {
           console.error('Update exception:', updateErr);
@@ -819,6 +844,7 @@
         await new Promise(resolve => setTimeout(resolve, 500));
         
         // Redirect to dashboard
+        console.log('Redirecting to dashboard...');
         window.location.href = 'dashboard.html';
       } catch (error) {
         console.error('Error processing deposit:', error);
