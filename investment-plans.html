@@ -362,7 +362,13 @@
         </div>
     </section>
 
-    <script>
+    <script type="module">
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+        
+        const SUPABASE_URL = 'https://mxbzzkwryfifpzaotrhl.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im14Ynp6a3dyeWZpZnB6YW90cmhsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI5NjQ4MzEsImV4cCI6MjA3ODU0MDgzMX0.ot10C7-pxlkoizmk5bhc2Oe_zyJ4PoGWdTrS7P8Xm9I';
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
         AOS.init();
         feather.replace();
 
@@ -371,15 +377,15 @@
             menu.classList.toggle('active');
         }
 
-        function logout() {
-            localStorage.removeItem('currentUser');
+        window.logout = async function() {
+            await supabase.auth.signOut();
             window.location.href = 'login.html';
-        }
+        };
 
-        function selectPlan(planType) {
-            // Check if user is logged in
-            const currentUser = localStorage.getItem('currentUser');
-            if (!currentUser) {
+        window.selectPlan = async function(planType) {
+            // Check if user is logged in with Supabase
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.user) {
                 alert('Please login to select an investment plan');
                 window.location.href = 'login.html';
                 return;
@@ -406,19 +412,48 @@
 
             // Redirect to deposit page with required amount
             window.location.href = `deposit.html?plan=${planType}&amount=${planAmount}`;
-        }
+        };
 
         // Check authentication on page load
-        window.addEventListener('DOMContentLoaded', () => {
-            const currentUser = localStorage.getItem('currentUser');
-            if (!currentUser) {
+        (async function checkAuth() {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                
+                if (!session?.user) {
+                    // Wait briefly for auth state change
+                    const { data: sub } = supabase.auth.onAuthStateChange(async (event, sess) => {
+                        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+                            if (sess?.user) {
+                                sub.subscription.unsubscribe();
+                                feather.replace();
+                                return;
+                            }
+                        }
+                    });
+                    
+                    // Timeout after 2 seconds
+                    setTimeout(async () => {
+                        const { data: { session: s2 } } = await supabase.auth.getSession();
+                        if (!s2?.user) {
+                            alert('Please login to view investment plans');
+                            window.location.href = 'login.html';
+                        } else {
+                            feather.replace();
+                        }
+                    }, 2000);
+                } else {
+                    feather.replace();
+                }
+            } catch (error) {
+                console.error('Auth check error:', error);
                 alert('Please login to view investment plans');
                 window.location.href = 'login.html';
             }
-            feather.replace();
-        });
+        })();
     </script>
 <script src="page-transitions.js"></script>
 </body>
 </html>
+
+
 
